@@ -32,6 +32,8 @@
 #define TRUE 1
 #define MSG_SIZE 256
 #define BUFFER_SIZE 256
+#define IP_SIZE 255
+
 
 int connect_to_host(char *server_ip, int server_port);
 
@@ -44,8 +46,16 @@ int connect_to_host(char *server_ip, int server_port);
  */
 
 int server; //When choose Client only, how to combine the server from the internet outside
-server = connect_to_host(
-                         
+char log_ip[255];
+char *client_ip = log_ip;
+
+if( fgets(log_ip, IP_SIZE, stdin) == NULL ){
+    printf("Please input correct IP");
+    exit(-1);
+}
+
+server = connect_to_host(client_ip, atoi(argv[2]));
+
 int main(int argc, char **argv)
 {
     if(argc != 3) {
@@ -64,6 +74,10 @@ int main(int argc, char **argv)
                 exit(-1);
             
             printf("\nSENDing to the remote server: %s(size:%d chars)", msg, strlen(msg));
+            
+            if(send(msg, server, strlen(msg), 0) == strlen(msg))
+                printf("Done!/n");
+            fflush(stdout);
         }
     }
     
@@ -72,7 +86,6 @@ int main(int argc, char **argv)
 
 int connect_to_host(int server_port)
 {
-    char HOST = 128.205.36.33;
     int fdsocket, len;
     struct sockaddr_in remote_server_addr;
     
