@@ -43,7 +43,7 @@
  * @return 0 EXIT_SUCCESS
  */
 
-int tcp_server(PORT){
+int tcp_server(s_PORT){
     
     int port, server_socket, head_socket, selret, sock_index, fdaccept=0, caddr_len;
     struct sockaddr_in server_addr, client_addr;
@@ -58,7 +58,7 @@ int tcp_server(PORT){
         perror("Cannot create socket");
     
     /* Fill up sockaddr_in struct */
-    port = atoi(PORT);
+    port = atoi(s_PORT);
     bzero(&server_addr, sizeof(server_addr));
     
     server_addr.sin_family = AF_INET;

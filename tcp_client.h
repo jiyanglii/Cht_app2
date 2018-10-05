@@ -43,14 +43,14 @@ int connect_to_host(char *server_ip, int server_port);
  * @param  argv The argument list
  * @return 0 EXIT_SUCCESS
  */
-int tcp_client(PORT){
+int tcp_client(c_PORT){
     int server; //When choose Client only, how to combine the server from the internet outside
     char log_ip[255];
     char *client_ip = log_ip;
     
     fgets(log_ip, IP_SIZE, stdin);
     
-    server = connect_to_host(client_ip, atoi(PORT));
+    server = connect_to_host(client_ip, atoi(c_PORT));
     
     while (TRUE) {
         printf("\n[PA1-Client@CSE489/589]$ ");

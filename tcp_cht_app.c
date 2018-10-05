@@ -34,10 +34,13 @@
 #define BUFFER_SIZE 256
 #define IP_SIZE 255
 
-int tcp_client(PORT);
-int tcp_server(PORT);
+int tcp_client(c_PORT);
+int tcp_server(s_PORT);
 
 int main(int argc, char **argv){
+    
+    int c_PORT;
+    int s_PORT;
     
 	if(argc != 3) {
         printf("[%s:ERROR]\n", *argv);
@@ -54,5 +57,6 @@ int main(int argc, char **argv){
         else
             printf("PLEASE INPUT c/s\n");
     }
+}
 
 	
