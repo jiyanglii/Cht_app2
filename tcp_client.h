@@ -66,6 +66,15 @@ int tcp_client(int c_PORT){
         if(send(msg, server, strlen(msg), 0) == strlen(msg))
             printf("Done!/n");
         fflush(stdout);
+        
+        /* Initialize buffer to receieve response */
+        char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
+        memset(buffer, '\0', BUFFER_SIZE);
+        
+        if(recv(server, buffer, BUFFER_SIZE, 0) >= 0){
+            printf("Server responded: %s", buffer);
+            fflush(stdout);
+        }
     }
 
 }
