@@ -43,7 +43,7 @@ int connect_to_host(char *server_ip, int server_port);
  * @param  argv The argument list
  * @return 0 EXIT_SUCCESS
  */
-int tcp_client(c_PORT){
+int tcp_client(int c_PORT){
     int server; //When choose Client only, how to combine the server from the internet outside
     char log_ip[255];
     char *client_ip = log_ip;
