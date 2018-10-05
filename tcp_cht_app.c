@@ -48,11 +48,13 @@ int main(int argc, char **argv){
     else{
         if (strcmp("c", argv[1]) == 0) {
             printf("[%s:SUCCESS]\n", *argv);
-            tcp_client(argv[2]);
+            c_PORT = atoi(argv[2]);
+            tcp_client(c_PORT);
         }
         else if(strcmp("s", argv[1]) == 0) {
             printf("[%s:SUCCESS]\n", *argv);
-            tcp_server(argv[2]);
+            s_PORT = atoi(argv[2]);
+            tcp_server(s_PORT);
         }
         else
             printf("PLEASE INPUT c/s\n");

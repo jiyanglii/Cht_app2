@@ -50,7 +50,7 @@ int tcp_client(c_PORT){
     
     fgets(log_ip, IP_SIZE, stdin);
     
-    server = connect_to_host(client_ip, atoi(c_PORT));
+    server = connect_to_host(client_ip, c_PORT);
     
     while (TRUE) {
         printf("\n[PA1-Client@CSE489/589]$ ");
