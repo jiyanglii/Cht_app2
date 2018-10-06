@@ -59,7 +59,7 @@ int main(int argc, char **argv)
 		if(fgets(msg, MSG_SIZE-1, stdin) == NULL) //Mind the newline character that will be written to msg
 			exit(-1);
 
-		printf("I got: %s(size:%d chars)", msg, strlen(msg));
+		printf("I got: %s(size:%d chars)", msg, (int)strlen(msg));
 
 		printf("\nSENDing it to the remote server ... ");
 		if(send(server, msg, strlen(msg), 0) == strlen(msg))

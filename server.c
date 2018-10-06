@@ -126,7 +126,7 @@ AF_INET Internet domain sockets
                     /* Check if new client is requesting connection */
                     else if(sock_index == server_socket){
                         caddr_len = sizeof(client_addr);
-                        fdaccept = accept(server_socket, (struct sockaddr *)&client_addr, &caddr_len);
+                        fdaccept = accept(server_socket, (struct sockaddr *)&client_addr, (socklen_t *)&caddr_len);
                         if(fdaccept < 0)
                             perror("Accept failed.");
 
