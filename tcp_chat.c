@@ -26,6 +26,7 @@
 #include <strings.h>
 #include <string.h>
 #include <arpa/inet.h>
+
 #include "tcp_client.h"
 #include "tcp_server.h"
 
@@ -34,17 +35,14 @@
 #define BUFFER_SIZE 256
 #define IP_SIZE 255
 
-int tcp_client(c_PORT);
-int tcp_server(s_PORT);
-
 int main(int argc, char **argv){
-    
+
     int c_PORT;
     int s_PORT;
-    
-	if(argc != 3) {
+
+    if(argc != 3) {
         printf("[%s:ERROR]\n", *argv);
-	}
+    }
     else{
         if (strcmp("c", argv[1]) == 0) {
             printf("[%s:SUCCESS]\n", *argv);
@@ -61,4 +59,4 @@ int main(int argc, char **argv){
     }
 }
 
-	
+

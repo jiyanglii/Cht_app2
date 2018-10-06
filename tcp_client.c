@@ -26,55 +26,49 @@
 #include <strings.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include "tcp_client.h"
 
-#define TRUE 1
-#define MSG_SIZE 256
-#define BUFFER_SIZE 256
-
-int connect_to_host(char *server_ip, int server_port);
-
- /**
+/**
  * main function
  *
  * @param  argc Number of arguments
  * @param  argv The argument list
  * @return 0 EXIT_SUCCESS
  */
-int main(int argc, char **argv)
-{
-	if(argc != 3) {
-		printf("Usage:%s [ip] [port]\n", argv[0]);
-		exit(-1);
-	}
+int tcp_client(int c_PORT){
+    int server; //When choose Client only, how to combine the server from the internet outside
+    char log_ip[255];
+    char *client_ip = log_ip;
 
-	int server;
-	server = connect_to_host(argv[1], atoi(argv[2]));
+    fgets(log_ip, IP_SIZE, stdin);
 
-	while(TRUE){
-		printf("\n[PA1-Client@CSE489/589]$ ");
-		fflush(stdout);
+    server = connect_to_host(client_ip, c_PORT);
 
-		char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
-    	memset(msg, '\0', MSG_SIZE);
-		if(fgets(msg, MSG_SIZE-1, stdin) == NULL) //Mind the newline character that will be written to msg
-			exit(-1);
+    while (TRUE) {
+        printf("\n[PA1-Client@CSE489/589]$ ");
+        fflush(stdout);
 
-		printf("I got: %s(size:%d chars)", msg, (int)strlen(msg));
+        char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
+        memset(msg, '\0', MSG_SIZE);
+        if(fgets(msg, MSG_SIZE-1, stdin) == NULL)
+            exit(-1);
 
-		printf("\nSENDing it to the remote server ... ");
-		if(send(server, msg, strlen(msg), 0) == strlen(msg))
-			printf("Done!\n");
-		fflush(stdout);
+        printf("\nSENDing to the remote server: %s(size:%d chars)", msg, (int)strlen(msg));
 
-		/* Initialize buffer to receieve response */
+        if(send(server, msg, strlen(msg), 0) == strlen(msg))
+            printf("Done!/n");
+        fflush(stdout);
+
+        /* Initialize buffer to receieve response */
         char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
         memset(buffer, '\0', BUFFER_SIZE);
 
-		if(recv(server, buffer, BUFFER_SIZE, 0) >= 0){
-			printf("Server responded: %s", buffer);
-			fflush(stdout);
-		}
-	}
+        if(recv(server, buffer, BUFFER_SIZE, 0) >= 0){
+            printf("Server responded: %s", buffer);
+            fflush(stdout);
+        }
+    }
+
 }
 
 int connect_to_host(char *server_ip, int server_port)
@@ -84,7 +78,7 @@ int connect_to_host(char *server_ip, int server_port)
 
     fdsocket = socket(AF_INET, SOCK_STREAM, 0);
     if(fdsocket < 0)
-       perror("Failed to create socket");
+        perror("Failed to create socket");
 
     bzero(&remote_server_addr, sizeof(remote_server_addr));
     remote_server_addr.sin_family = AF_INET;

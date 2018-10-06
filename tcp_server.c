@@ -28,12 +28,8 @@
 #include <strings.h>
 #include <string.h>
 #include <unistd.h>
+#include "tcp_server.h"
 
-#define BACKLOG 5
-#define STDIN 0
-#define TRUE 1
-#define CMD_SIZE 100
-#define BUFFER_SIZE 256
 
  /**
  * main function
@@ -42,28 +38,24 @@
  * @param  argv The argument list
  * @return 0 EXIT_SUCCESS
  */
-int main(int argc, char **argv)
-{
-	if(argc != 2) {
-		printf("Usage:%s [port]\n", argv[0]);
-		exit(-1);
-	}
 
-	int port, server_socket, head_socket, selret, sock_index, fdaccept=0, caddr_len;
+int tcp_server(int s_PORT){
+
+    int port, server_socket, head_socket, selret, sock_index, fdaccept=0, caddr_len;
     struct sockaddr_in server_addr, client_addr;
-	fd_set master_list, watch_list;
+    fd_set master_list, watch_list;
 
-	/* Socket */
-	server_socket = socket(AF_INET, SOCK_STREAM, 0); /* socket - create an endpoint for communication
-AF_INET Internet domain sockets
-0 causes socket() to use an unspecified default protocol appropriate for the requested socket type.*/
-                                                    
+    /* Socket */
+    server_socket = socket(AF_INET, SOCK_STREAM, 0); /* socket - create an endpoint for communication
+                                                      AF_INET Internet domain sockets
+                                                      0 causes socket() to use an unspecified default protocol appropriate for the requested socket type.*/
+
     if(server_socket < 0)
-		perror("Cannot create socket");
+        perror("Cannot create socket");
 
-	/* Fill up sockaddr_in struct */
-	port = atoi(argv[1]);
-	bzero(&server_addr, sizeof(server_addr));
+    /* Fill up sockaddr_in struct */
+    port = s_PORT;
+    bzero(&server_addr, sizeof(server_addr));
 
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -71,19 +63,19 @@ AF_INET Internet domain sockets
 
     /* Bind */
     if(bind(server_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0 )
-                                                                                    
-    perror("Bind failed");
+
+        perror("Bind failed");
 
     /* Listen */
     if(listen(server_socket, BACKLOG) < 0)
-    	perror("Unable to listen on port");
+        perror("Unable to listen on port");
 
     /* ---------------------------------------------------------------------------- */
 
     /* Zero select FD sets */
     FD_ZERO(&master_list);
     FD_ZERO(&watch_list);
-    
+
     /* Register the listening socket */
     FD_SET(server_socket, &master_list);
     /* Register STDIN */
@@ -95,7 +87,7 @@ AF_INET Internet domain sockets
         memcpy(&watch_list, &master_list, sizeof(master_list));
 
         //printf("\n[PA1-Server@CSE489/589]$ ");
-		//fflush(stdout);
+        //fflush(stdout);
 
         /* select() system call. This will BLOCK */
         selret = select(head_socket + 1, &watch_list, NULL, NULL, NULL);
@@ -111,17 +103,17 @@ AF_INET Internet domain sockets
 
                     /* Check if new command on STDIN */
                     if (sock_index == STDIN){
-                    	char *cmd = (char*) malloc(sizeof(char)*CMD_SIZE);
+                        char *cmd = (char*) malloc(sizeof(char)*CMD_SIZE);
 
-                    	memset(cmd, '\0', CMD_SIZE);
-						if(fgets(cmd, CMD_SIZE-1, stdin) == NULL) //Mind the newline character that will be written to cmd
-							exit(-1);
+                        memset(cmd, '\0', CMD_SIZE);
+                        if(fgets(cmd, CMD_SIZE-1, stdin) == NULL) //Mind the newline character that will be written to cmd
+                            exit(-1);
 
-						printf("\nI got: %s\n", cmd);
-						
-						//Process PA1 commands here ...
+                        printf("\nI got: %s\n", cmd);
 
-						free(cmd);
+                        //Process PA1 commands here ...
+
+                        free(cmd);
                     }
                     /* Check if new client is requesting connection */
                     else if(sock_index == server_socket){
@@ -130,7 +122,7 @@ AF_INET Internet domain sockets
                         if(fdaccept < 0)
                             perror("Accept failed.");
 
-						printf("\nRemote Host connected!\n");                        
+                        printf("\nRemote Host connected!\n");
 
                         /* Add to watched socket list */
                         FD_SET(fdaccept, &master_list);
@@ -150,13 +142,13 @@ AF_INET Internet domain sockets
                             FD_CLR(sock_index, &master_list);
                         }
                         else {
-                        	//Process incoming data from existing clients here ...
+                            //Process incoming data from existing clients here ...
 
-                        	printf("\nClient sent me: %s\n", buffer);
-							printf("ECHOing it back to the remote host ... ");
-							if(send(sock_index, buffer, strlen(buffer), 0) == strlen(buffer))
-								printf("Done!\n");
-							fflush(stdout);
+                            printf("\nClient sent me: %s\n", buffer);
+                            printf("ECHOing it back to the remote host ... ");
+                            if(send(sock_index, buffer, strlen(buffer), 0) == strlen(buffer))
+                                printf("Done!\n");
+                            fflush(stdout);
                         }
 
                         free(buffer);
@@ -168,3 +160,4 @@ AF_INET Internet domain sockets
 
     return 0;
 }
+
