@@ -28,13 +28,6 @@
 #include <arpa/inet.h>
 #include "tcp_client.h"
 
-/**
- * main function
- *
- * @param  argc Number of arguments
- * @param  argv The argument list
- * @return 0 EXIT_SUCCESS
- */
 int tcp_client(int c_PORT){
     int server; //When choose Client only, how to combine the server from the internet outside
     char log_ip[255];
