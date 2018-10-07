@@ -23,21 +23,19 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <strings.h>
 #include <string.h>
 #include <unistd.h>
+#include "cmdTokenizer.h"
 #include "tcp_server.h"
 
-
- /**
- * main function
- *
- * @param  argc Number of arguments
- * @param  argv The argument list
- * @return 0 EXIT_SUCCESS
- */
+static struct s_client client_list[MAX_CLIENT] = {0};
+static int client_count = 1;
+static struct s_cmd input_cmd;
 
 int tcp_server(int s_PORT){
 
@@ -58,11 +56,11 @@ int tcp_server(int s_PORT){
     bzero(&server_addr, sizeof(server_addr));
 
     server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    server_addr.sin_addr.s_addr = htonl(INADDR_ANY); // INADDR_ANY:  the socket accepts connections to all the IPs of the machine.
     server_addr.sin_port = htons(port);
 
     /* Bind */
-    if(bind(server_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0 )
+    if(bind(server_socket, (struct sockaddr *)&server_addr, (socklen_t)sizeof(server_addr)) < 0 )
 
         perror("Bind failed");
 
@@ -82,6 +80,7 @@ int tcp_server(int s_PORT){
     FD_SET(STDIN, &master_list);
 
     head_socket = server_socket;
+    printf("\nserver_socket: %d\n", server_socket);
 
     while(TRUE){
         memcpy(&watch_list, &master_list, sizeof(master_list));
@@ -97,9 +96,10 @@ int tcp_server(int s_PORT){
         /* Check if we have sockets/STDIN to process */
         if(selret > 0){
             /* Loop through socket descriptors to check which ones are ready */
-            for(sock_index=0; sock_index<=head_socket; sock_index+=1){
+            for(sock_index=0; sock_index<=head_socket; sock_index++){
 
                 if(FD_ISSET(sock_index, &watch_list)){
+
 
                     /* Check if new command on STDIN */
                     if (sock_index == STDIN){
@@ -111,12 +111,17 @@ int tcp_server(int s_PORT){
 
                         printf("\nI got: %s\n", cmd);
 
+                        // process command
+                        cmdTokenizer(cmd, &input_cmd);
+                        processCMD(&input_cmd);
+
                         //Process PA1 commands here ...
 
                         free(cmd);
                     }
                     /* Check if new client is requesting connection */
                     else if(sock_index == server_socket){
+                        printf("\nLine %d: sock_index: %d\n", __LINE__, sock_index);
                         caddr_len = sizeof(client_addr);
                         fdaccept = accept(server_socket, (struct sockaddr *)&client_addr, (socklen_t *)&caddr_len);
                         if(fdaccept < 0)
@@ -124,19 +129,28 @@ int tcp_server(int s_PORT){
 
                         printf("\nRemote Host connected!\n");
 
+                        // Add new client to client list
+                        if(new_client(fdaccept,(struct sockaddr *)&client_addr))
+                            printf("\nAdd to client list failed!\n");
+
+                        // Braodcast new client info
+
                         /* Add to watched socket list */
                         FD_SET(fdaccept, &master_list);
                         if(fdaccept > head_socket) head_socket = fdaccept;
                     }
                     /* Read from existing clients */
                     else{
+                        printf("\nLine %d: sock_index: %d\n", __LINE__, sock_index);
                         /* Initialize buffer to receieve response */
                         char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
                         memset(buffer, '\0', BUFFER_SIZE);
 
-                        if(recv(sock_index, buffer, BUFFER_SIZE, 0) <= 0){
+                        if(recv(sock_index, buffer, BUFFER_SIZE, 0) < 0){
                             close(sock_index);
                             printf("Remote Host terminated connection!\n");
+
+                            // Remove client from client list
 
                             /* Remove from watched list */
                             FD_CLR(sock_index, &master_list);
@@ -161,3 +175,58 @@ int tcp_server(int s_PORT){
     return 0;
 }
 
+int new_client(int new_fd, struct sockaddr * client_sock){
+
+    char s[INET6_ADDRSTRLEN];
+    struct sockaddr_in client_sock_in = *(struct sockaddr_in *)client_sock;
+
+    for(int i = 0; i<MAX_CLIENT; i++)
+    {
+        if (client_list[i].fd == 0)
+        {
+
+            inet_ntop(client_sock->sa_family,get_in_addr(client_sock), s , sizeof s);
+            printf("server: got connection from ip %s\n", s);
+            printf("server: got connection from port %08d\n", htons(client_sock_in.sin_port));
+
+
+            printf("%d\n", *(uint32_t *)get_in_addr(client_sock));
+
+            client_list[i].client_id = client_count;
+            client_list[i].status = LOGGED_IN;
+            client_list[i].ip = *(uint32_t *)get_in_addr(client_sock);
+            client_list[i].port_num = htons(client_sock_in.sin_port);
+            client_list[i].fd = new_fd;
+            client_list[i].client_info = client_sock_in;
+
+            printf("getpeername:%d\n", getpeername(new_fd, client_sock, (socklen_t *)sizeof(struct sockaddr)));
+            //printf("gethostname:%d\n", gethostname(fd, &client_sock, sizeof(client_sock)));
+
+            client_count++;
+            break;
+        }
+    }
+    return 0;
+}
+
+// get sockaddr, IPv4 or IPv6:
+void *get_in_addr(struct sockaddr *sa)
+{
+    if (sa->sa_family == AF_INET) {
+        return &(((struct sockaddr_in*)sa)->sin_addr);
+    }
+    return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
+
+void processCMD(struct s_cmd * parse_cmd){
+    char *cmd = parse_cmd->cmd;
+
+
+    if(strcmp(cmd, "IP") == 0){
+                    // call ip();
+    }
+    //else if ......
+    else{
+        printf("Invalid command!\n");
+    }
+}

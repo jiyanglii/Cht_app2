@@ -37,22 +37,20 @@
 
 int main(int argc, char **argv){
 
-    int c_PORT;
-    int s_PORT;
-
     if(argc != 3) {
         printf("[%s:ERROR]\n", *argv);
     }
-    else{
+    else
+    {
         if (strcmp("c", argv[1]) == 0) {
             printf("[%s:SUCCESS]\n", *argv);
-            c_PORT = atoi(argv[2]);
-            tcp_client(c_PORT);
+
+            tcp_client(atoi(argv[2]));
         }
         else if(strcmp("s", argv[1]) == 0) {
             printf("[%s:SUCCESS]\n", *argv);
-            s_PORT = atoi(argv[2]);
-            tcp_server(s_PORT);
+
+            tcp_server(atoi(argv[2]));
         }
         else
             printf("PLEASE INPUT c/s\n");

@@ -28,13 +28,6 @@
 #include <arpa/inet.h>
 #include "tcp_client.h"
 
-/**
- * main function
- *
- * @param  argc Number of arguments
- * @param  argv The argument list
- * @return 0 EXIT_SUCCESS
- */
 int tcp_client(int c_PORT){
     int server; //When choose Client only, how to combine the server from the internet outside
     char log_ip[255];
@@ -56,7 +49,7 @@ int tcp_client(int c_PORT){
         printf("\nSENDing to the remote server: %s(size:%d chars)", msg, (int)strlen(msg));
 
         if(send(server, msg, strlen(msg), 0) == strlen(msg))
-            printf("Done!/n");
+            printf("Done!\n");
         fflush(stdout);
 
         /* Initialize buffer to receieve response */
