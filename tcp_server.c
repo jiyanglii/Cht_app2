@@ -31,9 +31,11 @@
 #include <string.h>
 #include <unistd.h>
 #include "tcp_server.h"
+#include "cmdTokenizer.h"
 
 static struct s_client client_list[MAX_CLIENT] = {0};
 static int client_count = 1;
+static struct s_cmd input_cmd = 0;
 
 int tcp_server(int s_PORT){
 
@@ -108,6 +110,10 @@ int tcp_server(int s_PORT){
                             exit(-1);
 
                         printf("\nI got: %s\n", cmd);
+
+                        // process command
+                        cmdTokenizer(cmd, &input_cmd);
+                        processCMD(&input_cmd);
 
                         //Process PA1 commands here ...
 
@@ -210,4 +216,20 @@ void *get_in_addr(struct sockaddr *sa)
         return &(((struct sockaddr_in*)sa)->sin_addr);
     }
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
+
+void processCMD(struct s_cmd * parse_cmd){
+    char *cmd = parse_cmd->cmd;
+
+    switch(&cmd){
+
+        case 'IP':
+            // call ip();
+            break;
+        //case....
+
+        default:
+            printf("Invalid command!\n");
+
+    }
 }
