@@ -30,12 +30,12 @@
 #include <strings.h>
 #include <string.h>
 #include <unistd.h>
-#include "tcp_server.h"
 #include "cmdTokenizer.h"
+#include "tcp_server.h"
 
 static struct s_client client_list[MAX_CLIENT] = {0};
 static int client_count = 1;
-static struct s_cmd input_cmd = 0;
+static struct s_cmd input_cmd;
 
 int tcp_server(int s_PORT){
 
@@ -221,15 +221,12 @@ void *get_in_addr(struct sockaddr *sa)
 void processCMD(struct s_cmd * parse_cmd){
     char *cmd = parse_cmd->cmd;
 
-    switch(&cmd){
 
-        case 'IP':
-            // call ip();
-            break;
-        //case....
-
-        default:
-            printf("Invalid command!\n");
-
+    if(strcmp(cmd, "IP") == 0){
+                    // call ip();
+    }
+    //else if ......
+    else{
+        printf("Invalid command!\n");
     }
 }

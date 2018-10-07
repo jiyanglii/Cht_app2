@@ -27,3 +27,4 @@ struct s_client{
 int tcp_server(int s_PORT);
 int new_client(int fd, struct sockaddr*);
 void *get_in_addr(struct sockaddr *sa);
+void processCMD(struct s_cmd * parse_cmd);
