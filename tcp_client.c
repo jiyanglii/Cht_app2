@@ -38,7 +38,7 @@ static struct s_cmd input_cmd;
 
 int tcp_client(int c_PORT){
 
-    int port, server_socket, head_socket, selret, sock_index, fdaccept=0, caddr_len;
+    int head_socket, selret, sock_index;
     struct sockaddr_in server_addr, client_addr;
     fd_set master_list, watch_list;
 
