@@ -31,6 +31,8 @@
 #include <strings.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <netdb.h>
+
 #include "cmdTokenizer.h"
 #include "tcp_client.h"
 
@@ -162,31 +164,49 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
     char *cmd = parse_cmd->cmd;
 
 
-    if(strcmp(cmd, "IP") == 0){
-        char *host_ip;
-        char *host_name;
-        struct hostent *host_addr;
-        struct in_addr **addr_list;
-        
-        if (gethostname(host_name, IP_SIZE) == 0) {
-            host_addr = gethostbyname(host_name);
-            addr_list = (struct in_addr **)host_addr->h_addr_list;
-            host_ip = inet_ntoa(*addr_list[0]);
-            printf("[%s:SUCCESS]\n", cmd);
-            printf("IP:%s\n", host_ip);
-            printf("[%s:END]\n",cmd);
-            fflush(stdout);
-        }
-        else{
-            printf("[%s:ERROR]\n",cmd);
-            printf("[%s:END]\n",cmd);
-        }
-    }
-    else if(strcmp(cmd, "AUTHOR") == 0){
-        const char my_ubit_name = "jiyangli";
+//    if(strcmp(cmd, "IP") == 0){
+//        char *ex_ip;
+//        sock
+//        struct sockaddr_in *host_addr;
+//        int host_name;
+//
+//        int getpeername(fd, host_addr, IP_SIZE);
+//
+////        inet_ntop(
+//        ex_ip = inet_ntoa(host_addr->sin_addr);
+//        printf("[%s:SUCCESS]\n", cmd);
+//        printf("IP:%s\n", ex_ip);
+//        printf("[%s:END]\n",cmd);
+//        char *host_ip;
+//        char *host_name;
+//        struct hostent *host_addr;
+//        struct in_addr **addr_list;
+//
+//        if (gethostname(host_name, IP_SIZE) == 0) {
+//            host_addr = gethostbyname(host_name);
+//            addr_list = (struct in_addr **)host_addr->h_addr_list;
+//            host_ip = inet_ntoa(*addr_list[0]);
+//            printf("[%s:SUCCESS]\n", cmd);
+//            printf("IP:%s\n", host_ip);
+//            printf("[%s:END]\n",cmd);
+//            fflush(stdout);
+//        }
+//        else{
+//            printf("[%s:ERROR]\n",cmd);
+//            printf("[%s:END]\n",cmd);
+//        }
+//    }
+    if(strcmp(cmd, "AUTHOR") == 0){
+        const char my_ubit_name[30] = "jiyangli";
         printf("I, %s, have read and understood the course academic integrity policy.\n", my_ubit_name);
         fflush(stdout);
     }
+    else if(strcmp(cmd, "PORT") == 0){
+
+    }
+//    else if(strcmp(cmd, "LIST") == 0){
+//
+//    }
     else if(strcmp(cmd, "SEND") == 0){
         printf("SEND cmd received\n");
 
@@ -206,3 +226,5 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
         printf("Invalid command!\n");
     }
 }
+
+
