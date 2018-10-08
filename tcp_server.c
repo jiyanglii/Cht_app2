@@ -181,7 +181,7 @@ int tcp_server(int s_PORT){
 
 int forward(char * buffer){
 
-    char dest_ip_str[INET6_ADDRSTRLEN];
+    char dest_ip_str[INET_ADDRSTRLEN];
     cmdTokenizer(buffer, &input_cmd);
 
     memcpy(&dest_ip_str[0],input_cmd.cmd,sizeof(dest_ip_str));
@@ -207,7 +207,7 @@ int forward(char * buffer){
 
 int new_client(int new_fd, struct sockaddr * client_sock){
 
-    char s[INET6_ADDRSTRLEN];
+    char s[INET_ADDRSTRLEN];
     struct sockaddr_in client_sock_in = *(struct sockaddr_in *)client_sock;
 
     for(int i = 0; i<MAX_CLIENT; i++)

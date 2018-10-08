@@ -20,6 +20,11 @@
  *
  * This file contains the client.
  */
+
+
+#include <stdint.h>
+#include <netinet/in.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
@@ -32,7 +37,12 @@
 static struct s_cmd input_cmd;
 
 int tcp_client(int c_PORT){
-    int server; //When choose Client only, how to combine the server from the internet outside
+
+    int port, server_socket, head_socket, selret, sock_index, fdaccept=0, caddr_len;
+    struct sockaddr_in server_addr, client_addr;
+    fd_set master_list, watch_list;
+
+    int server;
     char log_ip[255];
     char *client_ip = log_ip;
 
@@ -42,32 +52,90 @@ int tcp_client(int c_PORT){
 
     server = connect_to_host(client_ip, c_PORT);
 
-    while (TRUE) {
-        printf("\n[PA1-Client@CSE489/589]$ ");
-        fflush(stdout);
+    if(server < 0)
+        perror("Cannot create socket");
 
-        char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
-        memset(msg, '\0', MSG_SIZE);
-        if(fgets(msg, MSG_SIZE-1, stdin) == NULL)
-            exit(-1);
+    /* Zero select FD sets */
+    FD_ZERO(&master_list);
+    FD_ZERO(&watch_list);
 
-        printf("\nSENDing to the remote server: %s(size:%d chars)", msg, (int)strlen(msg));
+    /* Register the listening socket */
+    FD_SET(server, &master_list);
+    /* Register STDIN */
+    FD_SET(STDIN, &master_list);
 
-        if(send(server, msg, strlen(msg), 0) == strlen(msg))
-            printf("Done!\n");
-        fflush(stdout);
+    head_socket = server;
+    printf("\nserver: %d\n", server);
 
-        /* Initialize buffer to receieve response */
-        char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
-        memset(buffer, '\0', BUFFER_SIZE);
+    while(TRUE){
+        memcpy(&watch_list, &master_list, sizeof(master_list));
 
-        if(recv(server, buffer, BUFFER_SIZE, 0) >= 0){
-            printf("Server responded: %s", buffer);
-            fflush(stdout);
+        //printf("\n[PA1-Server@CSE489/589]$ ");
+        //fflush(stdout);
+
+        /* select() system call. This will BLOCK */
+        selret = select(head_socket + 1, &watch_list, NULL, NULL, NULL);
+        if(selret < 0)
+            perror("select failed.");
+
+        /* Check if we have sockets/STDIN to process */
+        if(selret > 0){
+            /* Loop through socket descriptors to check which ones are ready */
+            for(sock_index=0; sock_index<=head_socket; sock_index++){
+
+                if(FD_ISSET(sock_index, &watch_list)){
+
+
+                    /* Check if new command on STDIN */
+                    if (sock_index == STDIN){
+                        char *cmd = (char*) malloc(sizeof(char)*CMD_SIZE);
+
+                        memset(cmd, '\0', CMD_SIZE);
+                        if(fgets(cmd, CMD_SIZE-1, stdin) == NULL) //Mind the newline character that will be written to cmd
+                            exit(-1);
+
+                        printf("\nI got: %s\n", cmd);
+
+                        // process command
+                        cmdTokenizer(cmd, &input_cmd);
+                        c_processCMD(&input_cmd, server);
+
+                        //Process PA1 commands here ...
+
+                        free(cmd);
+                    }
+                    /* Read from existing server */
+                    else{
+                        printf("\nLine %d: sock_index: %d\n", __LINE__, sock_index);
+
+                        /* Initialize buffer to receieve response */
+                        char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
+                        memset(buffer, '\0', BUFFER_SIZE);
+
+                        if(recv(sock_index, buffer, BUFFER_SIZE, 0) < 0){
+                            close(sock_index);
+                            printf("Remote Host terminated connection!\n");
+
+                            // Remove client from client list
+
+                            /* Remove from watched list */
+                            FD_CLR(sock_index, &master_list);
+                        }
+                        else {
+                            printf("\nServer sent me: %s\n", buffer);
+                            fflush(stdout);
+                        }
+
+                        free(buffer);
+                    }
+                }
+            }
         }
     }
 
+    return 0;
 }
+
 
 int connect_to_host(char *server_ip, int server_port)
 {
@@ -87,4 +155,32 @@ int connect_to_host(char *server_ip, int server_port)
         perror("Connect failed");
 
     return fdsocket;
+}
+
+
+void c_processCMD(struct s_cmd * parse_cmd, int fd){
+    char *cmd = parse_cmd->cmd;
+
+
+    if(strcmp(cmd, "IP") == 0){
+                    // call ip();
+    }
+    else if(strcmp(cmd, "SEND") == 0){
+        printf("SEND cmd revieved\n");
+
+        char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
+        memset(msg, '\0', MSG_SIZE);
+
+        strcpy(msg, parse_cmd->arg0);
+        strcat(msg, " ");
+        strcat(msg, parse_cmd->arg1);
+
+        if(send(fd, msg, (strlen(msg)), 0) == strlen(msg))
+            printf("Sent!\n");
+        fflush(stdout);
+        free(msg);
+    }
+    else{
+        printf("Invalid command!\n");
+    }
 }
