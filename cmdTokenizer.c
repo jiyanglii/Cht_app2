@@ -9,6 +9,8 @@
 #include <unistd.h>
 #include "cmdTokenizer.h"
 
+//#define DEBUG
+
 void cmdTokenizer(char *input, struct s_cmd * parse_cmd){
 
     // parse input cmd, initialize new buffer for cmd and each arges, and pass the pointers to parse_cmd as returned parsed cmd
