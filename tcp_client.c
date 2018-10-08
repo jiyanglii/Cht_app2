@@ -26,7 +26,10 @@
 #include <strings.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include "cmdTokenizer.h"
 #include "tcp_client.h"
+
+static struct s_cmd input_cmd;
 
 int tcp_client(int c_PORT){
     int server; //When choose Client only, how to combine the server from the internet outside
@@ -34,6 +37,8 @@ int tcp_client(int c_PORT){
     char *client_ip = log_ip;
 
     fgets(log_ip, IP_SIZE, stdin);
+
+    cmdTokenizer(client_ip, &input_cmd);
 
     server = connect_to_host(client_ip, c_PORT);
 
