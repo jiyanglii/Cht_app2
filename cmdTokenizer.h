@@ -2,8 +2,8 @@
 
 struct s_cmd{
     char *cmd;
-    char *arge0;
-    char *arge1;
+    char *arg0;
+    char *arg1;
 };
 
 void cmdTokenizer(char *input, struct s_cmd * parse_cmd);
