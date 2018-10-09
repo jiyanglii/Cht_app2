@@ -98,7 +98,7 @@ int tcp_client(int c_PORT){
                         c_processCMD(&input_cmd, server);
 
                         //Process PA1 commands here ...
-
+                        bzero(&input_cmd, sizeof(struct s_cmd));
                         free(cmd);
                     }
                     /* Read from existing server */
@@ -144,8 +144,11 @@ int connect_to_host(char *server_ip, int server_port)
     if(fdsocket < 0)
         perror("Failed to create socket");
 
+    bzero(&remote_server_addr, sizeof(remote_server_addr));
+    remote_server_addr.sin_family = AF_INET;
     remote_server_addr.sin_port = htons(local_port);
-    if(bind(fdsocket, (struct sockaddr *)&remote_server_addr, (socklen_t)sizeof(struct sockaddr_in)) < 0 )
+    remote_server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    if(bind(fdsocket, (struct sockaddr *)&remote_server_addr, (socklen_t)sizeof(remote_server_addr)) < 0 )
         perror("Bind failed");
 
     printf("Client: local port %08d\n", local_port);
@@ -198,11 +201,8 @@ void GetPrimaryIP() {
     close(sock);
 }
 
-
-
 void c_processCMD(struct s_cmd * parse_cmd, int fd){
     char *cmd = parse_cmd->cmd;
-
 
     if(strcmp(cmd, "IP") == 0){
       GetPrimaryIP(); // call ip();
@@ -210,10 +210,6 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
     else if(strcmp(cmd, "AUTHOR") == 0){
       const char* your_ubit_name = "jiyangli and yincheng";
       printf("I,%s,have read and understood the course academic integrity policy.\n",your_ubit_name);
-    }
-    else if(strcmp(cmd, "AUTHOR") == 0){
-        const char my_ubit_name[70] = "jiyangli & yincheng";
-        printf("I, %s, have read and understood the course academic integrity policy.\n", my_ubit_name);
     }
     else if(strcmp(cmd, "LOGIN") == 0)
     {
@@ -245,7 +241,7 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
                 LOGIN = false;
         }
     }
-    else if(strcmp(cmd, "SEND") == 0){
+    else if((strcmp(cmd, "SEND") == 0) && (parse_cmd->arg_num == 2)){ // For cmds with args, check arg number before accessing it to ensure security
         printf("SEND cmd revieved\n");
 
         char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
