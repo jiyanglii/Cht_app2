@@ -80,7 +80,8 @@ int tcp_client(int c_PORT){
         /* Check if we have sockets/STDIN to process */
         if(selret > 0){
             /* Loop through socket descriptors to check which ones are ready */
-            for(sock_index=0; sock_index<=head_socket; sock_index++){
+            for(sock_index = 0; sock_index<=head_socket; sock_index++){
+                printf("TEST PRINT sock_index: %d\n", sock_index);
 
                 if(FD_ISSET(sock_index, &watch_list)){
 
@@ -149,12 +150,15 @@ int connect_to_host(char *server_ip, int server_port)
     bzero(&remote_server_addr, sizeof(remote_server_addr));
     remote_server_addr.sin_family = AF_INET;
     remote_server_addr.sin_port = htons(local_port);
-    remote_server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    printf("TEST PRINT remote_server_addr.sin_port: %d\n", remote_server_addr.sin_port);
+    printf("TEST PRINT local_port: %d\n", local_port);
+
+    remote_server_addr.sin_addr.s_addr = htons(INADDR_ANY);
 
     if(bind(fdsocket, (struct sockaddr *)&remote_server_addr, (socklen_t)sizeof(remote_server_addr)) < 0 )
         perror("Bind failed");
 
-    printf("Client: local port %08d\n", htons(local_port));
+    printf("Client: local port %08d\n", local_port);
 
     bzero(&remote_server_addr, sizeof(remote_server_addr));
     inet_pton(AF_INET, server_ip, &remote_server_addr.sin_addr); //Convert IP addresses from human-readable to binary
