@@ -151,7 +151,7 @@ int connect_to_host(char *server_ip, int server_port)
     if(bind(fdsocket, (struct sockaddr *)&remote_server_addr, (socklen_t)sizeof(remote_server_addr)) < 0 )
         perror("Bind failed");
 
-    printf("Client: local port %08d\n", htons(local_port));
+    printf("Client: local port %08d\n", local_port);
 
     bzero(&remote_server_addr, sizeof(remote_server_addr));
     remote_server_addr.sin_family = AF_INET;
@@ -173,6 +173,10 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
 
     if(strcmp(cmd, "IP") == 0){
                     // call ip();
+    }
+    else if(strcmp(cmd, "AUTHOR") == 0){
+        const char my_ubit_name[70] = "jiyangli & yincheng";
+        printf("I, %s, have read and understood the course academic integrity policy.\n", my_ubit_name);
     }
     else if(strcmp(cmd, "LOGIN") == 0)
     {
