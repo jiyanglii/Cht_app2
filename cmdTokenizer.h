@@ -9,3 +9,4 @@ struct s_cmd{
 };
 
 void cmdTokenizer(char *input, struct s_cmd * parse_cmd);
+char *trimwhitespace(char *str);
