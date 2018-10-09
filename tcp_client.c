@@ -98,7 +98,7 @@ int tcp_client(int c_PORT){
                         c_processCMD(&input_cmd, server);
 
                         //Process PA1 commands here ...
-                        bzero(&input_cmd, sizeof(struct s_cmd));
+
                         free(cmd);
                     }
                     /* Read from existing server */
@@ -144,11 +144,8 @@ int connect_to_host(char *server_ip, int server_port)
     if(fdsocket < 0)
         perror("Failed to create socket");
 
-    bzero(&remote_server_addr, sizeof(remote_server_addr));
-    remote_server_addr.sin_family = AF_INET;
     remote_server_addr.sin_port = htons(local_port);
-    remote_server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    if(bind(fdsocket, (struct sockaddr *)&remote_server_addr, (socklen_t)sizeof(remote_server_addr)) < 0 )
+    if(bind(fdsocket, (struct sockaddr *)&remote_server_addr, (socklen_t)sizeof(struct sockaddr_in)) < 0 )
         perror("Bind failed");
 
     printf("Client: local port %08d\n", local_port);
@@ -167,12 +164,52 @@ int connect_to_host(char *server_ip, int server_port)
     return fdsocket;
 }
 
+void GetPrimaryIP() {
+    int sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if(sock <0) {
+      perror("Can not create socket!");
+    }
+    const char*         GoogleIp = "127.0.0.1";
+    int                 GooglePort = 53;
+    struct              sockaddr_in serv;
+    unsigned    char    buffer[20];
+    memset(&serv, 0, sizeof(serv));
+    serv.sin_family      = AF_INET;
+    serv.sin_addr.s_addr = inet_addr(GoogleIp);
+    serv.sin_port        = htons(GooglePort);
+
+//connect(fdsocket, (struct sockaddr*)&remote_server_addr, sizeof(remote_server
+    if(connect(sock,(struct sockaddr*) &serv,sizeof(serv)) <0)
+       perror("can not connect");
+
+    struct sockaddr_in name;
+    socklen_t namelen = sizeof(name);
+    if(getsockname(sock, (struct sockaddr *) &name, &namelen) <0)
+       perror("can not get host name");
+    
+    if(inet_ntop(AF_INET, (const void *)&name.sin_addr, buffer, 20) < 0) {
+        printf("inet_ntop error");
+    }
+    else {
+        printf("presentation: %s \r\n", buffer);
+        printf("numeric: 0x%x \r\n",name.sin_addr.s_addr);
+//        exit(0);
+    }
+    close(sock);
+}
+
+
 
 void c_processCMD(struct s_cmd * parse_cmd, int fd){
     char *cmd = parse_cmd->cmd;
 
+
     if(strcmp(cmd, "IP") == 0){
-                    // call ip();
+      GetPrimaryIP(); // call ip();
+    }
+    else if(strcmp(cmd, "AUTHOR") == 0){
+      const char* your_ubit_name = "jiyangli and yincheng";
+      printf("I,%s,have read and understood the course academic integrity policy.\n",your_ubit_name);
     }
     else if(strcmp(cmd, "AUTHOR") == 0){
         const char my_ubit_name[70] = "jiyangli & yincheng";
@@ -208,7 +245,7 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
                 LOGIN = false;
         }
     }
-    else if((strcmp(cmd, "SEND") == 0) && (parse_cmd->arg_num == 2)){ // For cmds with args, check arg number before accessing it to ensure security
+    else if(strcmp(cmd, "SEND") == 0){
         printf("SEND cmd revieved\n");
 
         char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
