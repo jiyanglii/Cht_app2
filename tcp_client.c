@@ -21,7 +21,7 @@
  * This file contains the client.
  */
 
-
+#include <stdbool.h>
 #include <stdint.h>
 #include <netinet/in.h>
 #include <unistd.h>
@@ -37,32 +37,29 @@
 #include "tcp_client.h"
 
 static struct s_cmd input_cmd;
+static uint8_t LOGIN_CMD = false; // This varible sets when recives a LOGIN cmd
+static uint8_t LOGIN = false;     // This varible sets when the client is LOGGED IN
+
+static fd_set master_list, watch_list;
+static int server = 0;
+static int head_socket = 0;
+
+static int local_port;
 
 int tcp_client(int c_PORT){
 
-    int head_socket, selret, sock_index;
+    int selret, sock_index;
     struct sockaddr_in server_addr, client_addr;
-    fd_set master_list, watch_list;
 
-    int server;
     char log_ip[255];
     char *client_ip = log_ip;
 
-    fgets(log_ip, IP_SIZE, stdin);
-
-    cmdTokenizer(client_ip, &input_cmd);
-
-    server = connect_to_host(client_ip, c_PORT);
-
-    if(server < 0)
-        perror("Cannot create socket");
+    local_port = c_PORT;
 
     /* Zero select FD sets */
     FD_ZERO(&master_list);
     FD_ZERO(&watch_list);
 
-    /* Register the listening socket */
-    FD_SET(server, &master_list);
     /* Register STDIN */
     FD_SET(STDIN, &master_list);
 
@@ -107,7 +104,8 @@ int tcp_client(int c_PORT){
                         free(cmd);
                     }
                     /* Read from existing server */
-                    else{
+                    else if((sock_index == server) && (server != 0))
+                    {
                         printf("\nLine %d: sock_index: %d\n", __LINE__, sock_index);
 
                         /* Initialize buffer to receieve response */
@@ -148,13 +146,22 @@ int connect_to_host(char *server_ip, int server_port)
     if(fdsocket < 0)
         perror("Failed to create socket");
 
+    remote_server_addr.sin_port = htons(local_port);
+    if(bind(fdsocket, (struct sockaddr *)&remote_server_addr, (socklen_t)sizeof(struct sockaddr_in)) < 0 )
+        perror("Bind failed");
+
+    printf("Client: local port %08d\n", htons(local_port));
+
     bzero(&remote_server_addr, sizeof(remote_server_addr));
     remote_server_addr.sin_family = AF_INET;
-    inet_pton(AF_INET, server_ip, &remote_server_addr.sin_addr); //Convert IP addresses to human-readable form and back
+    inet_pton(AF_INET, server_ip, &remote_server_addr.sin_addr); //Convert IP addresses from human-readable to binary
     remote_server_addr.sin_port = htons(server_port);
 
     if(connect(fdsocket, (struct sockaddr*)&remote_server_addr, sizeof(remote_server_addr)) < 0)
         perror("Connect failed");
+
+    getsockname(fdsocket, (struct sockaddr*)&remote_server_addr, (socklen_t *)sizeof(struct sockaddr_in));
+    printf("Client: local port %08d\n", htons(remote_server_addr.sin_port));
 
     return fdsocket;
 }
@@ -165,6 +172,36 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
 
     if(strcmp(cmd, "IP") == 0){
                     // call ip();
+    }
+    else if(strcmp(cmd, "LOGIN") == 0)
+    {
+        printf("LOGIN cmd recieved\n");
+
+        if(LOGIN == true){
+            printf("Client already logged in, please log out first!\n");
+        }
+        else{
+            server = connect_to_host(parse_cmd->arg0, atoi(parse_cmd->arg1));
+            if(server < 0)
+                perror("Cannot create socket");
+            else{
+                /* Register the listening socket */
+                FD_SET(server, &master_list);
+                if(server > head_socket) head_socket = server;
+                LOGIN = true;
+            }
+        }
+    }
+    else if(strcmp(cmd, "LOGOUT") == 0){
+        printf("LOGOUT cmd recieved\n");
+        if(LOGIN == false){
+            printf("Client not logged in, please log in first!\n");
+        }
+        else{
+                if(send(fd, LOGOUT, (strlen(LOGOUT)), 0) == strlen(LOGOUT))
+                    printf("Sent!\n");
+                LOGIN = false;
+        }
     }
     else if(strcmp(cmd, "SEND") == 0){
         printf("SEND cmd revieved\n");
@@ -179,6 +216,9 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
             printf("Sent!\n");
         fflush(stdout);
         free(msg);
+    }
+    else if(strcmp(cmd, "PORT") == 0){
+        printf("PORT:%d\n", local_port);
     }
     else{
         printf("Invalid command!\n");

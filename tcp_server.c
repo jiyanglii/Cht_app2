@@ -38,6 +38,8 @@ static struct s_client client_list[MAX_CLIENT] = {0};
 static int client_count = 1;
 static struct s_cmd input_cmd;
 
+static int s_local_port = 0;
+
 int tcp_server(int s_PORT){
 
     int port, server_socket, head_socket, selret, sock_index, fdaccept=0, caddr_len;
@@ -53,6 +55,7 @@ int tcp_server(int s_PORT){
         perror("Cannot create socket");
 
     /* Fill up sockaddr_in struct */
+    s_local_port = s_PORT;
     port = s_PORT;
     bzero(&server_addr, sizeof(server_addr));
 
@@ -232,7 +235,7 @@ int new_client(int new_fd, struct sockaddr * client_sock){
             client_list[i].fd = new_fd;
             client_list[i].client_info = client_sock_in;
 
-            printf("getpeername:%d\n", getpeername(new_fd, client_sock, (socklen_t *)sizeof(struct sockaddr)));
+            //printf("getpeername:%d\n", getpeername(new_fd, client_sock, (socklen_t *)sizeof(struct sockaddr)));
             //printf("gethostname:%d\n", gethostname(fd, &client_sock, sizeof(client_sock)));
 
             client_count++;
@@ -257,6 +260,9 @@ void processCMD(struct s_cmd * parse_cmd){
 
     if(strcmp(cmd, "IP") == 0){
                     // call ip();
+    }
+    else if(strcmp(cmd, "PORT") == 0){
+        printf("PORT:%d\n", s_local_port);
     }
     //else if ......
     else{
