@@ -96,26 +96,6 @@ int tcp_client(int c_PORT){
                         if(fgets(cmd, CMD_SIZE-1, stdin) == NULL) //Mind the newline character that will be written to cmd
                             exit(-1);
 
-<<<<<<< HEAD
-                        //printf("\nI got: %s\n", cmd);
-
-                        // process command
-                        cmdTokenizer(cmd, &input_cmd);
-                        c_processCMD(&input_cmd, server, c_PORT);
-
-                        //Process PA1 commands here ...
-
-                        free(cmd);
-                    }
-                    /* Read from existing server */
-                    else{
-                        printf("\nLine %d: sock_index: %d\n", __LINE__, sock_index);
-
-                        /* Initialize buffer to receieve response */
-                        char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
-                        memset(buffer, '\0', BUFFER_SIZE);
-
-=======
                         printf("\nI got: %s\n", cmd);
 
                         // process command
@@ -134,7 +114,6 @@ int tcp_client(int c_PORT){
                         char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
                         memset(buffer, '\0', BUFFER_SIZE);
 
->>>>>>> dj
                         if(recv(sock_index, buffer, BUFFER_SIZE, 0) < 0){
                             close(sock_index);
                             printf("Remote Host terminated connection!\n");
@@ -180,58 +159,6 @@ int connect_to_host(char *server_ip, int server_port)
     return fdsocket;
 }
 
-
-<<<<<<< HEAD
-void c_processCMD(struct s_cmd * parse_cmd, int fd, int c_PORT){
-    char *cmd = parse_cmd->cmd;
-
-
-//    if(strcmp(cmd, "IP") == 0){
-//        char *ex_ip;
-//        sock
-//        struct sockaddr_in *host_addr;
-//        int host_name;
-//
-//        int getpeername(fd, host_addr, IP_SIZE);
-//
-////        inet_ntop(
-//        ex_ip = inet_ntoa(host_addr->sin_addr);
-//        printf("[%s:SUCCESS]\n", cmd);
-//        printf("IP:%s\n", ex_ip);
-//        printf("[%s:END]\n",cmd);
-//        char *host_ip;
-//        char *host_name;
-//        struct hostent *host_addr;
-//        struct in_addr **addr_list;
-//
-//        if (gethostname(host_name, IP_SIZE) == 0) {
-//            host_addr = gethostbyname(host_name);
-//            addr_list = (struct in_addr **)host_addr->h_addr_list;
-//            host_ip = inet_ntoa(*addr_list[0]);
-//            printf("[%s:SUCCESS]\n", cmd);
-//            printf("IP:%s\n", host_ip);
-//            printf("[%s:END]\n",cmd);
-//            fflush(stdout);
-//        }
-//        else{
-//            printf("[%s:ERROR]\n",cmd);
-//            printf("[%s:END]\n",cmd);
-//        }
-//    }
-    if(strcmp(cmd, "AUTHOR") == 0){
-        const char my_ubit_name[70] = "jiyangli & yincheng";
-        printf("I, %s, have read and understood the course academic integrity policy.\n", my_ubit_name);
-        fflush(stdout);
-    }
-    else if(strcmp(cmd, "PORT") == 0){
-        printf("PORT:%d\n", c_PORT);
-    }
-//    else if(strcmp(cmd, "LIST") == 0){
-//
-//    }
-    else if(strcmp(cmd, "SEND") == 0){
-        printf("SEND cmd received\n");
-=======
 void c_processCMD(struct s_cmd * parse_cmd, int fd){
     char *cmd = parse_cmd->cmd;
 
@@ -241,8 +168,6 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
     }
     else if(strcmp(cmd, "SEND") == 0){
         printf("SEND cmd revieved\n");
->>>>>>> dj
-
         char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
         memset(msg, '\0', MSG_SIZE);
 
@@ -258,10 +183,4 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
     else{
         printf("Invalid command!\n");
     }
-<<<<<<< HEAD
 }
-
-
-=======
-}
->>>>>>> dj
