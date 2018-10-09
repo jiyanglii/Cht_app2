@@ -148,13 +148,13 @@ int connect_to_host(char *server_ip, int server_port)
 
     bzero(&remote_server_addr, sizeof(remote_server_addr));
     remote_server_addr.sin_family = AF_INET;
-    remote_server_addr.sin_port = local_port;
+    remote_server_addr.sin_port = htons(local_port);
     remote_server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
     if(bind(fdsocket, (struct sockaddr *)&remote_server_addr, (socklen_t)sizeof(remote_server_addr)) < 0 )
         perror("Bind failed");
 
-    printf("Client: local port %08d\n", local_port);
+    printf("Client: local port %08d\n", htons(local_port));
 
     bzero(&remote_server_addr, sizeof(remote_server_addr));
     inet_pton(AF_INET, server_ip, &remote_server_addr.sin_addr); //Convert IP addresses from human-readable to binary
