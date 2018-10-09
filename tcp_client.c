@@ -148,7 +148,7 @@ int connect_to_host(char *server_ip, int server_port)
     remote_server_addr.sin_family = AF_INET;
     remote_server_addr.sin_port = htons(local_port);
     remote_server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    if(bind(fdsocket, (struct sockaddr *)&remote_server_addr, (socklen_t)sizeof(struct sockaddr_in)) < 0 )
+    if(bind(fdsocket, (struct sockaddr *)&remote_server_addr, (socklen_t)sizeof(remote_server_addr)) < 0 )
         perror("Bind failed");
 
     printf("Client: local port %08d\n", htons(local_port));

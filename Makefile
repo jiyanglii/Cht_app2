@@ -3,8 +3,10 @@ obj = $(src:.c=.o)
 
 LDFLAGS =
 
+CFLAGS = -std=c99
+
 chat_app:	$(obj)
-	$(CC) -o $@ $^ $(LDFLAGS)
+	$(CC) -o $@ $^ $(LDFLAGS) $(CFLAGS)
 
 .PHONY: clean
 clean:
