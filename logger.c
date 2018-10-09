@@ -27,8 +27,8 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "../include/global.h"
-#include "../include/logger.h"
+#include "global.h"
+#include "logger.h"
 
 char LOGFILE[FILEPATH_LEN];
 void cse4589_init_log(char* port)
