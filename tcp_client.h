@@ -13,8 +13,4 @@
 
 int tcp_client(int c_PORT);
 int connect_to_host(char *server_ip, int server_port);
-<<<<<<< HEAD
-void c_processCMD(struct s_cmd * parse_cmd, int fd, int c_PORT);
-=======
 void c_processCMD(struct s_cmd * parse_cmd, int fd);
->>>>>>> dj
