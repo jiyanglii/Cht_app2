@@ -100,7 +100,7 @@ int tcp_client(int c_PORT){
                         c_processCMD(&input_cmd, server);
 
                         //Process PA1 commands here ...
-
+                        bzero(&input_cmd, sizeof(struct s_cmd));
                         free(cmd);
                     }
                     /* Read from existing server */
@@ -145,6 +145,11 @@ int connect_to_host(char *server_ip, int server_port)
     fdsocket = socket(AF_INET, SOCK_STREAM, 0);
     if(fdsocket < 0)
         perror("Failed to create socket");
+<<<<<<< HEAD
+=======
+
+    bzero(&remote_server_addr, sizeof(remote_server_addr));
+>>>>>>> dj
     remote_server_addr.sin_family = AF_INET;
     remote_server_addr.sin_port = htons(local_port);
     remote_server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -168,7 +173,6 @@ int connect_to_host(char *server_ip, int server_port)
 
 void c_processCMD(struct s_cmd * parse_cmd, int fd){
     char *cmd = parse_cmd->cmd;
-
 
     if(strcmp(cmd, "IP") == 0){
                     // call ip();
@@ -203,7 +207,7 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
                 LOGIN = false;
         }
     }
-    else if(strcmp(cmd, "SEND") == 0){
+    else if((strcmp(cmd, "SEND") == 0) && (parse_cmd->arg_num == 2)){ // For cmds with args, check arg number before accessing it to ensure security
         printf("SEND cmd revieved\n");
         char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
         memset(msg, '\0', MSG_SIZE);

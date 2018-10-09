@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -15,12 +16,12 @@ void cmdTokenizer(char *input, struct s_cmd * parse_cmd){
 
     // parse input cmd, initialize new buffer for cmd and each arges, and pass the pointers to parse_cmd as returned parsed cmd
     char *token;
-    const char delim = ' ';
+    const char delim[2] = " ";
 
     parse_cmd->arg_num = 0;
 
     /* get the first token */
-    token = strtok(input, &delim);
+    token = strtok(input, delim);
     parse_cmd->cmd = token;
 
 #ifdef DEBUG
@@ -30,7 +31,7 @@ void cmdTokenizer(char *input, struct s_cmd * parse_cmd){
     /* walk through other tokens */
     if( token != NULL ) {
 
-        token = strtok(NULL, &delim);
+        token = strtok(NULL, delim);
         parse_cmd->arg0 = token;
 
         if(parse_cmd->arg0)
@@ -43,7 +44,7 @@ void cmdTokenizer(char *input, struct s_cmd * parse_cmd){
 
     if( token != NULL ) {
 
-        token = strtok(NULL, &delim);
+        token = strtok(NULL, delim);
         parse_cmd->arg1 = token;
 
         if(parse_cmd->arg1)
@@ -55,7 +56,30 @@ void cmdTokenizer(char *input, struct s_cmd * parse_cmd){
    }
 
 #ifdef DEBUG
-    printf("Line %d: Number of atgs in this cmd: %d\n",  __LINE__, parse_cmd->arg_num);
+    printf("Line %d: Number of args in this cmd: %d\n",  __LINE__, parse_cmd->arg_num);
 #endif
 
+    if(parse_cmd->arg_num == 0)
+        parse_cmd->cmd = trimwhitespace(parse_cmd->cmd);
+
+}
+
+char *trimwhitespace(char *str)
+{
+  char *end;
+
+  // Trim leading space
+  while(isspace((unsigned char)*str)) str++;
+
+  if(*str == 0)  // All spaces?
+    return str;
+
+  // Trim trailing space
+  end = str + strlen(str) - 1;
+  while(end > str && isspace((unsigned char)*end)) end--;
+
+  // Write new null terminator character
+  end[1] = '\0';
+
+  return str;
 }

@@ -120,7 +120,7 @@ int tcp_server(int s_PORT){
                         processCMD(&input_cmd);
 
                         //Process PA1 commands here ...
-
+                        bzero(&input_cmd, sizeof(struct s_cmd));
                         free(cmd);
                     }
                     /* Check if new client is requesting connection */
