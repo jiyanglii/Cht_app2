@@ -100,7 +100,7 @@ int tcp_client(int c_PORT){
 
                         // process command
                         cmdTokenizer(cmd, &input_cmd);
-                        c_processCMD(&input_cmd, server);
+                        c_processCMD(&input_cmd, server, c_PORT);
 
                         //Process PA1 commands here ...
 
@@ -160,7 +160,7 @@ int connect_to_host(char *server_ip, int server_port)
 }
 
 
-void c_processCMD(struct s_cmd * parse_cmd, int fd){
+void c_processCMD(struct s_cmd * parse_cmd, int fd, int c_PORT){
     char *cmd = parse_cmd->cmd;
 
 
@@ -197,12 +197,12 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
 //        }
 //    }
     if(strcmp(cmd, "AUTHOR") == 0){
-        const char my_ubit_name[30] = "jiyangli";
+        const char my_ubit_name[70] = "jiyangli & yincheng";
         printf("I, %s, have read and understood the course academic integrity policy.\n", my_ubit_name);
         fflush(stdout);
     }
     else if(strcmp(cmd, "PORT") == 0){
-
+        printf("PORT:%d\n", c_PORT);
     }
 //    else if(strcmp(cmd, "LIST") == 0){
 //
