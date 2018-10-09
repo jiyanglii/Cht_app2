@@ -96,6 +96,7 @@ int tcp_client(int c_PORT){
                         if(fgets(cmd, CMD_SIZE-1, stdin) == NULL) //Mind the newline character that will be written to cmd
                             exit(-1);
 
+<<<<<<< HEAD
                         //printf("\nI got: %s\n", cmd);
 
                         // process command
@@ -114,6 +115,26 @@ int tcp_client(int c_PORT){
                         char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
                         memset(buffer, '\0', BUFFER_SIZE);
 
+=======
+                        printf("\nI got: %s\n", cmd);
+
+                        // process command
+                        cmdTokenizer(cmd, &input_cmd);
+                        c_processCMD(&input_cmd, server);
+
+                        //Process PA1 commands here ...
+
+                        free(cmd);
+                    }
+                    /* Read from existing server */
+                    else{
+                        printf("\nLine %d: sock_index: %d\n", __LINE__, sock_index);
+
+                        /* Initialize buffer to receieve response */
+                        char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
+                        memset(buffer, '\0', BUFFER_SIZE);
+
+>>>>>>> dj
                         if(recv(sock_index, buffer, BUFFER_SIZE, 0) < 0){
                             close(sock_index);
                             printf("Remote Host terminated connection!\n");
@@ -160,6 +181,7 @@ int connect_to_host(char *server_ip, int server_port)
 }
 
 
+<<<<<<< HEAD
 void c_processCMD(struct s_cmd * parse_cmd, int fd, int c_PORT){
     char *cmd = parse_cmd->cmd;
 
@@ -209,6 +231,17 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd, int c_PORT){
 //    }
     else if(strcmp(cmd, "SEND") == 0){
         printf("SEND cmd received\n");
+=======
+void c_processCMD(struct s_cmd * parse_cmd, int fd){
+    char *cmd = parse_cmd->cmd;
+
+
+    if(strcmp(cmd, "IP") == 0){
+                    // call ip();
+    }
+    else if(strcmp(cmd, "SEND") == 0){
+        printf("SEND cmd revieved\n");
+>>>>>>> dj
 
         char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
         memset(msg, '\0', MSG_SIZE);
@@ -225,6 +258,10 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd, int c_PORT){
     else{
         printf("Invalid command!\n");
     }
+<<<<<<< HEAD
 }
 
 
+=======
+}
+>>>>>>> dj

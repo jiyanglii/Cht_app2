@@ -161,9 +161,13 @@ int tcp_server(int s_PORT){
 
                             printf("\nClient sent me: %s\n", buffer);
                             printf("ECHOing it back to the remote host ... ");
-                            if(send(sock_index, buffer, strlen(buffer), 0) == strlen(buffer))
-                                printf("Done!\n");
-                            fflush(stdout);
+
+                            // Extract destination ip from the incoming msg
+                            //dest_ip_str = buffer;
+
+                            // Validate destination IP and
+                            if(forward(buffer))
+                                printf("Message forwarding failed\n");
                         }
 
                         free(buffer);
@@ -176,9 +180,35 @@ int tcp_server(int s_PORT){
     return 0;
 }
 
+int forward(char * buffer){
+
+    char dest_ip_str[INET_ADDRSTRLEN];
+    cmdTokenizer(buffer, &input_cmd);
+
+    memcpy(&dest_ip_str[0],input_cmd.cmd,sizeof(dest_ip_str));
+
+    for(int i = 0; i<MAX_CLIENT; i++){
+
+        if ((client_list[i].fd != 0) && (strcmp(client_list[i].ip_str, input_cmd.cmd) == 0) && (client_list[i].status == LOGGED_IN)){
+            printf("\nClient found!\n");
+
+            // Destination client exits in the client list, forward the msg
+            if(send(client_list[i].fd, input_cmd.arg0, (strlen(input_cmd.arg0)), 0) == (strlen(input_cmd.arg0)))
+                printf("Done!\n");
+            fflush(stdout);
+            break;
+        }
+        else if(client_list[i].fd == 0){
+            break;
+        }
+    }
+    return 0;
+
+}
+
 int new_client(int new_fd, struct sockaddr * client_sock){
 
-    char s[INET6_ADDRSTRLEN];
+    char s[INET_ADDRSTRLEN];
     struct sockaddr_in client_sock_in = *(struct sockaddr_in *)client_sock;
 
     for(int i = 0; i<MAX_CLIENT; i++)
@@ -186,7 +216,7 @@ int new_client(int new_fd, struct sockaddr * client_sock){
         if (client_list[i].fd == 0)
         {
 
-            inet_ntop(client_sock->sa_family,get_in_addr(client_sock), s , sizeof s);
+            inet_ntop(client_sock->sa_family,get_in_addr(client_sock), s , sizeof(s));
             printf("server: got connection from ip %s\n", s);
             printf("server: got connection from port %08d\n", htons(client_sock_in.sin_port));
 
@@ -196,6 +226,8 @@ int new_client(int new_fd, struct sockaddr * client_sock){
             client_list[i].client_id = client_count;
             client_list[i].status = LOGGED_IN;
             client_list[i].ip = *(uint32_t *)get_in_addr(client_sock);
+            memcpy(&client_list[i].ip_str[0],&s[0],sizeof(s));
+            //client_list[i].ip_str = s;
             client_list[i].port_num = htons(client_sock_in.sin_port);
             client_list[i].fd = new_fd;
             client_list[i].client_info = client_sock_in;

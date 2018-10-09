@@ -17,6 +17,7 @@ struct s_client{
     char status;
     char host_name[20];
     uint32_t ip;
+    char ip_str[INET6_ADDRSTRLEN];
     int port_num;
     int msg_rev;
     int msg_sent;
@@ -25,6 +26,7 @@ struct s_client{
 };
 
 int tcp_server(int s_PORT);
+int forward(char * buffer);
 int new_client(int fd, struct sockaddr*);
 void *get_in_addr(struct sockaddr *sa);
 void processCMD(struct s_cmd * parse_cmd);
