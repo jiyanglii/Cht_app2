@@ -32,7 +32,6 @@
 #include <unistd.h>
 #include "cmdTokenizer.h"
 #include "tcp_server.h"
-#include "logger.h"
 
 static struct s_client client_list[MAX_CLIENT] = {0};
 static int client_count = 1;
