@@ -37,6 +37,7 @@
 static struct s_cmd input_cmd;
 static uint8_t LOGIN_CMD = false; // This varible sets when recives a LOGIN cmd
 static uint8_t LOGIN = false;     // This varible sets when the client is LOGGED IN
+static uint8_t INIT_LOGIN  = true;
 
 static fd_set master_list, watch_list;
 static int server = 0;
@@ -189,8 +190,8 @@ void GetPrimaryIP() {
     socklen_t namelen = sizeof(name);
     if(getsockname(sock, (struct sockaddr *) &name, &namelen) <0)
        perror("can not get host name");
-    
-    if(inet_ntop(AF_INET, (const void *)&name.sin_addr, buffer, 20) < 0) {
+
+    if(inet_ntop(AF_INET, (const void *)&name.sin_addr, (char *)&buffer[0], 20) < 0) {
         printf("inet_ntop error");
     }
     else {
@@ -215,10 +216,8 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
     {
         printf("LOGIN cmd recieved\n");
 
-        if(LOGIN == true){
-            printf("Client already logged in, please log out first!\n");
-        }
-        else{
+        if(INIT_LOGIN){
+            // This is ran by start up, first to establish connection to server
             server = connect_to_host(parse_cmd->arg0, atoi(parse_cmd->arg1));
             if(server < 0)
                 perror("Cannot create socket");
@@ -227,8 +226,28 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
                 FD_SET(server, &master_list);
                 if(server > head_socket) head_socket = server;
                 LOGIN = true;
+                INIT_LOGIN = false;
             }
         }
+        else if(LOGIN == true){
+            printf("Client already logged in, please log out first!\n");
+        }
+        else if(LOGIN == false){
+            // Re log in after logged out
+            char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
+            memset(msg, '\0', MSG_SIZE);
+
+            msg = concatCMD(msg, parse_cmd);
+            printf("ConcatCMD %s\n", msg);
+
+            if(send(fd, msg, (strlen(msg)), 0) == strlen(msg)){
+                printf("Sent!\n");
+                LOGIN = true;
+            }
+            fflush(stdout);
+            free(msg);
+        }
+
     }
     else if(strcmp(cmd, "LOGOUT") == 0){
         printf("LOGOUT cmd recieved\n");
@@ -236,11 +255,13 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
             printf("Client not logged in, please log in first!\n");
         }
         else{
-                if(send(fd, LOGOUT, (strlen(LOGOUT)), 0) == strlen(LOGOUT))
+                if(send(fd, LOGOUT, (strlen(LOGOUT)), 0) == strlen(LOGOUT)){
                     printf("Sent!\n");
-                LOGIN = false;
+                    LOGIN = false;
+                }
         }
     }
+
     else if(strcmp(cmd, "LIST") == 0){
         if(LOGIN == TRUE){
             if(send(fd, LIST, (strlen(LIST)),0) == strlen(LIST)){
@@ -251,15 +272,14 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
             printf("[%s:SUCCESS]\n",cmd);
         }
     }
-    else if((strcmp(cmd, "SEND") == 0) && (parse_cmd->arg_num == 2)){ // For cmds with args, check arg number before accessing it to ensure security
+    else if((strcmp(cmd, "SEND") == 0) && (parse_cmd->arg_num >= 2)){ // For cmds with args, check arg number before accessing it to ensure security
         printf("SEND cmd revieved\n");
 
         char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
         memset(msg, '\0', MSG_SIZE);
 
-        strcpy(msg, parse_cmd->arg0);
-        strcat(msg, " ");
-        strcat(msg, parse_cmd->arg1);
+        msg = concatCMD(msg, parse_cmd);
+        printf("ConcatCMD %s\n", msg);
 
         if(send(fd, msg, (strlen(msg)), 0) == strlen(msg))
             printf("Sent!\n");

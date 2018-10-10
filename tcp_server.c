@@ -39,9 +39,11 @@ static struct s_cmd input_cmd;
 
 static int s_local_port = 0;
 
+static int sock_index = 0;
+
 int tcp_server(int s_PORT){
 
-    int port, server_socket, head_socket, selret, sock_index, fdaccept=0, caddr_len;
+    int port, server_socket, head_socket, selret, fdaccept=0, caddr_len;
     struct sockaddr_in server_addr, client_addr;
     fd_set master_list, watch_list;
 
@@ -162,14 +164,12 @@ int tcp_server(int s_PORT){
                             //Process incoming data from existing clients here ...
 
                             printf("\nClient sent me: %s\n", buffer);
-                            printf("ECHOing it back to the remote host ... ");
 
-                            // Extract destination ip from the incoming msg
-                            //dest_ip_str = buffer;
+                            cmdTokenizer(buffer, &input_cmd);
+                            processCMD(&input_cmd);
 
-                            // Validate destination IP and
-                            if(forward(buffer))
-                                printf("Message forwarding failed\n");
+                            //Process PA1 commands here ...
+                            bzero(&input_cmd, sizeof(struct s_cmd));
                         }
 
                         free(buffer);
@@ -182,30 +182,146 @@ int tcp_server(int s_PORT){
     return 0;
 }
 
-int forward(char * buffer){
+int forward(){
+
+    int id_dst, id_src  = -1;
+    char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
+    memset(msg, '\0', MSG_SIZE);
 
     char dest_ip_str[INET_ADDRSTRLEN];
-    cmdTokenizer(buffer, &input_cmd);
 
-    memcpy(&dest_ip_str[0],input_cmd.cmd,sizeof(dest_ip_str));
+    memcpy(&dest_ip_str[0],input_cmd.arg0,sizeof(dest_ip_str));
+
+    id_dst = find_client_by_ip(input_cmd.arg0);
+
+    if(id_dst != -1){
+
+        id_src = find_client_by_fd(sock_index);
+
+        memcpy(&dest_ip_str[0],client_list[id_src].ip_str,sizeof(dest_ip_str));
+
+        input_cmd.arg0 = &dest_ip_str[0];
+
+        msg = concatCMD(msg, &input_cmd);
+
+        if (client_list[id_dst].status == LOGGED_IN){
+            // When logged in, directly forward msg, find out incoming client by its FD
+
+            if(send(client_list[id_dst].fd, msg, (strlen(msg)), 0) == strlen(msg))
+                printf("Sent!\n");
+            fflush(stdout);
+        }
+        else{
+            // Client not logged in, buffer the msg
+            printf("Buffering msg!\n");
+
+            // Find a spot in the buffer
+            for(int j = 0; j < MAX_MSG_BUFFER; j++){
+                printf("%s\n", client_list[id_dst].buffer[j]);
+                if(!client_list[id_dst].buffer[j]){
+                    client_list[id_dst].buffer[j] = (char*) malloc(sizeof(char)*(strlen(msg)));
+                    memcpy(client_list[id_dst].buffer[j], msg, sizeof(char)*(strlen(msg)));
+
+                    printf("Buffered msg: %s\n", client_list[id_dst].buffer[j]);
+
+                    break;
+                }
+            }
+        }
+
+
+    }
+    else{
+        // Not client in the list
+    }
+    free(msg);
+    return 0;
+}
+
+
+int login(){
+    int id_src  = -1;
+
+    id_src = find_client_by_fd(sock_index);
+
+    if(id_src != -1){
+        client_list[id_src].status = LOGGED_IN;
+
+        //Send all buffered msg now!
+        for(int j = 0; j < MAX_MSG_BUFFER; j++){
+            if(client_list[id_src].buffer[j] != NULL){
+                if(send(client_list[id_src].fd, client_list[id_src].buffer[j], (strlen(client_list[id_src].buffer[j])), 0) == strlen(client_list[id_src].buffer[j]))
+                    printf("Buffered msg sent!\n");
+                fflush(stdout);
+                free(client_list[id_src].buffer[j]);
+                client_list[id_src].buffer[j] = NULL;
+            }
+            else{
+                // Reach the end
+                break;
+            }
+        }
+    }
+    else{
+        // This case should NEVER happen!
+        printf("Client not found! Creating new client!\n");
+    }
+    return 0;
+}
+
+int logout(){
+
+    int id_src  = -1;
+
+    id_src = find_client_by_fd(sock_index);
+
+    if(id_src != -1){
+        client_list[id_src].status = LOGGED_OUT;
+    }
+    else
+        printf("Client not found!\n");
+    return 0;
+}
+
+int find_client_by_ip(char * ip){
+
+    int idx = -1;
 
     for(int i = 0; i<MAX_CLIENT; i++){
 
-        if ((client_list[i].fd != 0) && (strcmp(client_list[i].ip_str, input_cmd.cmd) == 0) && (client_list[i].status == LOGGED_IN)){
+        if ((client_list[i].fd != 0) && (strcmp(client_list[i].ip_str, ip) == 0)){
             printf("\nClient found!\n");
 
-            // Destination client exits in the client list, forward the msg
-            if(send(client_list[i].fd, input_cmd.arg0, (strlen(input_cmd.arg0)), 0) == (strlen(input_cmd.arg0)))
-                printf("Done!\n");
-            fflush(stdout);
+            idx = i;
+
             break;
         }
         else if(client_list[i].fd == 0){
             break;
         }
     }
-    return 0;
 
+    return idx;
+}
+
+int find_client_by_fd(int fd){
+    int idx = -1;
+
+    for(int i = 0; i<MAX_CLIENT; i++){
+
+        if ((client_list[i].fd != 0) && (client_list[i].fd == fd)){
+            printf("\nClient found!\n");
+
+            idx = i;
+
+            break;
+        }
+        else if(client_list[i].fd == 0){
+            break;
+        }
+    }
+
+    return idx;
 }
 
 int new_client(int new_fd, struct sockaddr * client_sock){
@@ -237,6 +353,10 @@ int new_client(int new_fd, struct sockaddr * client_sock){
             //printf("getpeername:%d\n", getpeername(new_fd, client_sock, (socklen_t *)sizeof(struct sockaddr)));
             //printf("gethostname:%d\n", gethostname(fd, &client_sock, sizeof(client_sock)));
 
+            for(int j = 0; j < MAX_MSG_BUFFER; j++){
+                client_list[i].buffer[j] = NULL;
+                }
+
             client_count++;
             break;
         }
@@ -263,7 +383,19 @@ void processCMD(struct s_cmd * parse_cmd){
     else if(strcmp(cmd, "PORT") == 0){
         printf("PORT:%d\n", s_local_port);
     }
-    //else if ......
+    else if (strcmp(cmd, "LOGOUT") == 0){
+        logout();
+    }
+    else if (strcmp(cmd, "LOGIN") == 0){
+        // Here handles when a client already in the list, but logged out, re log in here
+        // New client case is handles elsewhere
+        login();
+    }
+    else if (strcmp(cmd, "SEND") == 0){
+        // Validate destination IP and
+        if(forward())
+            printf("Message forwarding failed\n");
+    }
     else{
         printf("Invalid command!\n");
     }
