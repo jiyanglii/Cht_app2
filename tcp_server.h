@@ -6,6 +6,7 @@
 #define TRUE        1
 #define CMD_SIZE    100
 #define BUFFER_SIZE 256
+#define MSG_SIZE    256
 #define MAX_CLIENT  0xff
 
 #define LOGGED_IN       1
@@ -26,7 +27,11 @@ struct s_client{
 };
 
 int tcp_server(int s_PORT);
-int forward(char * buffer);
+int forward();
 int new_client(int fd, struct sockaddr*);
 void *get_in_addr(struct sockaddr *sa);
 void processCMD(struct s_cmd * parse_cmd);
+
+
+int find_client_by_ip(char * ip);
+int find_client_by_fd(int fd);

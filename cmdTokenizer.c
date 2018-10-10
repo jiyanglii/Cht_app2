@@ -16,6 +16,8 @@ void cmdTokenizer(char *input, struct s_cmd * parse_cmd){
 
     // parse input cmd, initialize new buffer for cmd and each arges, and pass the pointers to parse_cmd as returned parsed cmd
     char *token;
+    int input_size = strlen(input);
+    int char_count = 0;
     const char delim[2] = " ";
 
     parse_cmd->arg_num = 0;
@@ -23,6 +25,7 @@ void cmdTokenizer(char *input, struct s_cmd * parse_cmd){
     /* get the first token */
     token = strtok(input, delim);
     parse_cmd->cmd = token;
+    char_count += strlen(parse_cmd->cmd) + 1;
 
 #ifdef DEBUG
     printf("Line %d: %s\n",  __LINE__, parse_cmd->cmd);
@@ -33,6 +36,7 @@ void cmdTokenizer(char *input, struct s_cmd * parse_cmd){
 
         token = strtok(NULL, delim);
         parse_cmd->arg0 = token;
+        char_count += strlen(parse_cmd->arg0) + 1;
 
         if(parse_cmd->arg0)
             parse_cmd->arg_num ++;
@@ -46,6 +50,7 @@ void cmdTokenizer(char *input, struct s_cmd * parse_cmd){
 
         token = strtok(NULL, delim);
         parse_cmd->arg1 = token;
+        char_count += strlen(parse_cmd->arg1) + 1;
 
         if(parse_cmd->arg1)
             parse_cmd->arg_num ++;
@@ -53,7 +58,19 @@ void cmdTokenizer(char *input, struct s_cmd * parse_cmd){
 #ifdef DEBUG
         printf("Line %d: %s\n",  __LINE__, parse_cmd->arg1);
 #endif
-   }
+    }
+
+
+    if(char_count < input_size)
+        parse_cmd->end = (char *)(input + char_count);
+    else
+        parse_cmd->end = NULL;
+
+#ifdef DEBUG
+    printf("Line %d: char_count: %d\n",  __LINE__, (int)char_count);
+    printf("Line %d: %s\n",  __LINE__, parse_cmd->arg1);
+    printf("Line %d: end of args in this cmd: %s\n",  __LINE__, parse_cmd->end);
+#endif
 
 #ifdef DEBUG
     printf("Line %d: Number of args in this cmd: %d\n",  __LINE__, parse_cmd->arg_num);
@@ -61,6 +78,7 @@ void cmdTokenizer(char *input, struct s_cmd * parse_cmd){
 
     if(parse_cmd->arg_num == 0)
         parse_cmd->cmd = trimwhitespace(parse_cmd->cmd);
+
 
 }
 
@@ -82,4 +100,22 @@ char *trimwhitespace(char *str)
   end[1] = '\0';
 
   return str;
+}
+
+char *concatCMD(char * msg, struct s_cmd * parse_cmd){
+
+    strcpy(msg, parse_cmd->cmd);
+
+    if(parse_cmd->arg_num >= 1){
+        strcat(msg, " ");
+        strcat(msg, parse_cmd->arg0);
+    }
+
+    if(parse_cmd->arg_num == 2){
+        strcat(msg, " ");
+        strcat(msg, parse_cmd->arg1);
+    }
+
+    return msg;
+
 }

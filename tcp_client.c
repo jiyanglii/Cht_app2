@@ -189,8 +189,8 @@ void GetPrimaryIP() {
     socklen_t namelen = sizeof(name);
     if(getsockname(sock, (struct sockaddr *) &name, &namelen) <0)
        perror("can not get host name");
-    
-    if(inet_ntop(AF_INET, (const void *)&name.sin_addr, buffer, 20) < 0) {
+
+    if(inet_ntop(AF_INET, (const void *)&name.sin_addr, (char *)&buffer[0], 20) < 0) {
         printf("inet_ntop error");
     }
     else {
@@ -241,15 +241,14 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
                 LOGIN = false;
         }
     }
-    else if((strcmp(cmd, "SEND") == 0) && (parse_cmd->arg_num == 2)){ // For cmds with args, check arg number before accessing it to ensure security
+    else if((strcmp(cmd, "SEND") == 0) && (parse_cmd->arg_num >= 2)){ // For cmds with args, check arg number before accessing it to ensure security
         printf("SEND cmd revieved\n");
 
         char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
         memset(msg, '\0', MSG_SIZE);
 
-        strcpy(msg, parse_cmd->arg0);
-        strcat(msg, " ");
-        strcat(msg, parse_cmd->arg1);
+        msg = concatCMD(msg, parse_cmd);
+        printf("ConcatCMD %s\n", msg);
 
         if(send(fd, msg, (strlen(msg)), 0) == strlen(msg))
             printf("Sent!\n");
