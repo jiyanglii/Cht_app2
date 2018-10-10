@@ -171,26 +171,30 @@ int connect_to_host(char *server_ip, int server_port)
     return fdsocket;
 }
 
-void GetHostIP() {
-    struct ifreq ifr;
-    
-    int sock = socket(AF_INET, SOCK_DGRAM, 0);
-    
-    ifr.ifr_addr.sa_family = AF_INET;
-    
-    strncpy(ifr.ifr_name, "etho", IFNAMSIZ-1);
-    
-    ioctl(sock, SIOCGIFADDR, &ifr);
-    close(sock);
-    
-    printf("Local external IP: %s\n", inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
-}
-
 void c_processCMD(struct s_cmd * parse_cmd, int fd){
     char *cmd = parse_cmd->cmd;
 
     if(strcmp(cmd, "IP") == 0){
-        GetHostIP();
+        struct ifreq ifr;
+        
+        int sock = socket(AF_INET, SOCK_DGRAM, 0);
+        if(sock < 0){
+            printf("[%s:ERROR]\n", cmd);
+            printf("[%s:END]\n", cmd);
+        }
+        else{
+            ifr.ifr_addr.sa_family = AF_INET;
+            
+            strncpy(ifr.ifr_name, "etho", IFNAMSIZ-1);
+            
+            ioctl(sock, SIOCGIFADDR, &ifr);
+            close(sock);
+            
+            printf("[%s:SUCCESS]\n",cmd);
+            printf("IP:%s\n", inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
+            printf("[%s:END]\n",cmd);
+        }
+        
     }
     else if(strcmp(cmd, "AUTHOR") == 0){
       const char* your_ubit_name = "jiyangli and yincheng";
