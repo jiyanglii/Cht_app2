@@ -25,51 +25,37 @@ void cmdTokenizer(char *input, struct s_cmd * parse_cmd){
     /* get the first token */
     token = strtok(input, delim);
     parse_cmd->cmd = token;
-    char_count += strlen(parse_cmd->cmd) + 1;
 
 #ifdef DEBUG
     printf("Line %d: %s\n",  __LINE__, parse_cmd->cmd);
 #endif
 
     /* walk through other tokens */
-    if( token != NULL ) {
+    if(token) {
+        char_count += strlen(parse_cmd->cmd) + 1;
 
         token = strtok(NULL, delim);
         parse_cmd->arg0 = token;
-        char_count += strlen(parse_cmd->arg0) + 1;
 
-        if(parse_cmd->arg0)
+        if(parse_cmd->arg0){
+            char_count += strlen(parse_cmd->arg0) + 1;
             parse_cmd->arg_num ++;
+        }
 
 #ifdef DEBUG
         printf("Line %d: %s\n",  __LINE__, parse_cmd->arg0);
 #endif
    }
 
-    if( token != NULL ) {
-
-        token = strtok(NULL, delim);
-        parse_cmd->arg1 = token;
-        char_count += strlen(parse_cmd->arg1) + 1;
-
-        if(parse_cmd->arg1)
-            parse_cmd->arg_num ++;
-
-#ifdef DEBUG
-        printf("Line %d: %s\n",  __LINE__, parse_cmd->arg1);
-#endif
+    if(char_count < input_size){
+        parse_cmd->arg1 = (char *)(input + char_count);
+        parse_cmd->arg_num ++;
     }
-
-
-    if(char_count < input_size)
-        parse_cmd->end = (char *)(input + char_count);
     else
-        parse_cmd->end = NULL;
+        parse_cmd->arg1 = NULL;
 
 #ifdef DEBUG
-    printf("Line %d: char_count: %d\n",  __LINE__, (int)char_count);
     printf("Line %d: %s\n",  __LINE__, parse_cmd->arg1);
-    printf("Line %d: end of args in this cmd: %s\n",  __LINE__, parse_cmd->end);
 #endif
 
 #ifdef DEBUG
@@ -78,8 +64,6 @@ void cmdTokenizer(char *input, struct s_cmd * parse_cmd){
 
     if(parse_cmd->arg_num == 0)
         parse_cmd->cmd = trimwhitespace(parse_cmd->cmd);
-
-
 }
 
 char *trimwhitespace(char *str)
