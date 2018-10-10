@@ -31,6 +31,9 @@
 #include <strings.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <net/if.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
 #include "cmdTokenizer.h"
 #include "tcp_client.h"
 
@@ -168,45 +171,26 @@ int connect_to_host(char *server_ip, int server_port)
     return fdsocket;
 }
 
-void GetPrimaryIP() {
+void GetHostIP() {
+    struct ifreq ifr;
+    
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if(sock <0) {
-      perror("Can not create socket!");
-    }
-    const char*         GoogleIp = "127.0.0.1";
-    int                 GooglePort = 53;
-    struct              sockaddr_in serv;
-    unsigned    char    buffer[20];
-    memset(&serv, 0, sizeof(serv));
-    serv.sin_family      = AF_INET;
-    serv.sin_addr.s_addr = inet_addr(GoogleIp);
-    serv.sin_port        = htons(GooglePort);
-
-//connect(fdsocket, (struct sockaddr*)&remote_server_addr, sizeof(remote_server
-    if(connect(sock,(struct sockaddr*) &serv,sizeof(serv)) <0)
-       perror("can not connect");
-
-    struct sockaddr_in name;
-    socklen_t namelen = sizeof(name);
-    if(getsockname(sock, (struct sockaddr *) &name, &namelen) <0)
-       perror("can not get host name");
-
-    if(inet_ntop(AF_INET, (const void *)&name.sin_addr, (char *)&buffer[0], 20) < 0) {
-        printf("inet_ntop error");
-    }
-    else {
-        printf("presentation: %s \r\n", buffer);
-        printf("numeric: 0x%x \r\n",name.sin_addr.s_addr);
-//        exit(0);
-    }
+    
+    ifr.ifr_addr.sa_family = AF_INET;
+    
+    strncpy(ifr.ifr_name, "etho", IFNAMSIZ-1);
+    
+    ioctl(sock, SIOCGIFADDR, &ifr);
     close(sock);
+    
+    printf("Local external IP: %s\n", inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
 }
 
 void c_processCMD(struct s_cmd * parse_cmd, int fd){
     char *cmd = parse_cmd->cmd;
 
     if(strcmp(cmd, "IP") == 0){
-      GetPrimaryIP(); // call ip();
+        GetHostIP();
     }
     else if(strcmp(cmd, "AUTHOR") == 0){
       const char* your_ubit_name = "jiyangli and yincheng";
@@ -262,16 +246,6 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
         }
     }
 
-    else if(strcmp(cmd, "LIST") == 0){
-        if(LOGIN == TRUE){
-            if(send(fd, LIST, (strlen(LIST)),0) == strlen(LIST)){
-                
-            }
-        }
-        else{
-            printf("[%s:SUCCESS]\n",cmd);
-        }
-    }
     else if((strcmp(cmd, "SEND") == 0) && (parse_cmd->arg_num >= 2)){ // For cmds with args, check arg number before accessing it to ensure security
         printf("SEND cmd revieved\n");
 

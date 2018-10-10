@@ -48,7 +48,7 @@ void cmdTokenizer(char *input, struct s_cmd * parse_cmd){
    }
 
     if(char_count < input_size){
-        parse_cmd->arg1 = (char *)(input + char_count);
+        parse_cmd->arg1 = (char *)(input + char_count); // the pointer start from the first char of arg1
         parse_cmd->arg_num ++;
     }
     else
