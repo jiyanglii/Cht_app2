@@ -164,7 +164,7 @@ int connect_to_host(char *server_ip, int server_port)
     return fdsocket;
 }
 
-void GetPrimaryIP() {
+void GetPrimaryIP(char *cmd) {
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
     if(sock <0) {
       perror("Can not create socket!");
@@ -191,9 +191,9 @@ void GetPrimaryIP() {
         printf("inet_ntop error");
     }
     else {
-        printf("presentation: %s \r\n", buffer);
-        printf("numeric: 0x%x \r\n",name.sin_addr.s_addr);
-//        exit(0);
+        printf("[%s:SUCCESS]\n", cmd);
+        printf("IP:%s\n",buffer);
+        printf("[%s:END]\n", cmd);
     }
     close(sock);
 }
@@ -205,7 +205,7 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
 
 
     if(strcmp(cmd, "IP") == 0){
-      GetPrimaryIP(); // call ip();
+      GetPrimaryIP(cmd); // call ip();
     }
     else if(strcmp(cmd, "AUTHOR") == 0){
       const char* your_ubit_name = "jiyangli and yincheng";
