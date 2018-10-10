@@ -241,6 +241,16 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
                 LOGIN = false;
         }
     }
+    else if(strcmp(cmd, "LIST") == 0){
+        if(LOGIN == TRUE){
+            if(send(fd, LIST, (strlen(LIST)),0) == strlen(LIST)){
+                
+            }
+        }
+        else{
+            printf("[%s:SUCCESS]\n",cmd);
+        }
+    }
     else if((strcmp(cmd, "SEND") == 0) && (parse_cmd->arg_num == 2)){ // For cmds with args, check arg number before accessing it to ensure security
         printf("SEND cmd revieved\n");
 
