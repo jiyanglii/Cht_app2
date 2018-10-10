@@ -8,6 +8,9 @@
 #define BUFFER_SIZE 256
 #define MSG_SIZE    256
 #define MAX_CLIENT  0xff
+#define MAX_MSG_BUFFER 100
+
+#define LOGOUT      "LOGOUT"
 
 #define LOGGED_IN       1
 #define LOGGED_OUT      0
@@ -24,10 +27,12 @@ struct s_client{
     int msg_sent;
     int fd;
     struct sockaddr_in client_info;
+    char *buffer[MAX_MSG_BUFFER];
 };
 
 int tcp_server(int s_PORT);
 int forward();
+int logout();
 int new_client(int fd, struct sockaddr*);
 void *get_in_addr(struct sockaddr *sa);
 void processCMD(struct s_cmd * parse_cmd);
