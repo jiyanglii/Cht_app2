@@ -31,16 +31,12 @@
 #include <strings.h>
 #include <string.h>
 #include <arpa/inet.h>
-#include <net/if.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
 #include "cmdTokenizer.h"
 #include "tcp_client.h"
 
 static struct s_cmd input_cmd;
 static uint8_t LOGIN_CMD = false; // This varible sets when recives a LOGIN cmd
 static uint8_t LOGIN = false;     // This varible sets when the client is LOGGED IN
-static uint8_t INIT_LOGIN  = true;
 
 static fd_set master_list, watch_list;
 static int server = 0;
@@ -102,7 +98,7 @@ int tcp_client(int c_PORT){
                         c_processCMD(&input_cmd, server);
 
                         //Process PA1 commands here ...
-                        bzero(&input_cmd, sizeof(struct s_cmd));
+
                         free(cmd);
                     }
                     /* Read from existing server */
@@ -148,14 +144,11 @@ int connect_to_host(char *server_ip, int server_port)
     if(fdsocket < 0)
         perror("Failed to create socket");
 
-    bzero(&remote_server_addr, sizeof(remote_server_addr));
-    remote_server_addr.sin_family = AF_INET;
     remote_server_addr.sin_port = htons(local_port);
-    remote_server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    if(bind(fdsocket, (struct sockaddr *)&remote_server_addr, (socklen_t)sizeof(remote_server_addr)) < 0 )
+    if(bind(fdsocket, (struct sockaddr *)&remote_server_addr, (socklen_t)sizeof(struct sockaddr_in)) < 0 )
         perror("Bind failed");
 
-    printf("Client: local port %08d\n", local_port);
+    printf("Client: local port %08d\n", htons(local_port));
 
     bzero(&remote_server_addr, sizeof(remote_server_addr));
     remote_server_addr.sin_family = AF_INET;
@@ -171,30 +164,48 @@ int connect_to_host(char *server_ip, int server_port)
     return fdsocket;
 }
 
+void GetPrimaryIP() {
+    int sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if(sock <0) {
+      perror("Can not create socket!");
+    }
+    const char*         GoogleIp = "8.8.8.8";
+    int                 GooglePort = 53;
+    struct              sockaddr_in serv;
+    unsigned    char    buffer[20];
+    memset(&serv, 0, sizeof(serv));
+    serv.sin_family      = AF_INET;
+    serv.sin_addr.s_addr = inet_addr(GoogleIp);
+    serv.sin_port        = htons(GooglePort);
+
+//connect(fdsocket, (struct sockaddr*)&remote_server_addr, sizeof(remote_server
+    if(connect(sock,(struct sockaddr*) &serv,sizeof(serv)) <0)
+       perror("can not connect");
+
+    struct sockaddr_in name;
+    socklen_t namelen = sizeof(name);
+    if(getsockname(sock, (struct sockaddr *) &name, &namelen) <0)
+       perror("can not get host name");
+    
+    if(inet_ntop(AF_INET, (const void *)&name.sin_addr, buffer, 20) < 0) {
+        printf("inet_ntop error");
+    }
+    else {
+        printf("presentation: %s \r\n", buffer);
+        printf("numeric: 0x%x \r\n",name.sin_addr.s_addr);
+//        exit(0);
+    }
+    close(sock);
+}
+
+
+
 void c_processCMD(struct s_cmd * parse_cmd, int fd){
     char *cmd = parse_cmd->cmd;
 
+
     if(strcmp(cmd, "IP") == 0){
-        struct ifreq ifr;
-        
-        int sock = socket(AF_INET, SOCK_DGRAM, 0);
-        if(sock < 0){
-            printf("[%s:ERROR]\n", cmd);
-            printf("[%s:END]\n", cmd);
-        }
-        else{
-            ifr.ifr_addr.sa_family = AF_INET;
-            
-            strncpy(ifr.ifr_name, "etho", IFNAMSIZ-1);
-            
-            ioctl(sock, SIOCGIFADDR, &ifr);
-            close(sock);
-            
-            printf("[%s:SUCCESS]\n",cmd);
-            printf("IP:%s\n", inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
-            printf("[%s:END]\n",cmd);
-        }
-        
+      GetPrimaryIP(); // call ip();
     }
     else if(strcmp(cmd, "AUTHOR") == 0){
       const char* your_ubit_name = "jiyangli and yincheng";
@@ -204,8 +215,10 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
     {
         printf("LOGIN cmd recieved\n");
 
-        if(INIT_LOGIN){
-            // This is ran by start up, first to establish connection to server
+        if(LOGIN == true){
+            printf("Client already logged in, please log out first!\n");
+        }
+        else{
             server = connect_to_host(parse_cmd->arg0, atoi(parse_cmd->arg1));
             if(server < 0)
                 perror("Cannot create socket");
@@ -214,28 +227,8 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
                 FD_SET(server, &master_list);
                 if(server > head_socket) head_socket = server;
                 LOGIN = true;
-                INIT_LOGIN = false;
             }
         }
-        else if(LOGIN == true){
-            printf("Client already logged in, please log out first!\n");
-        }
-        else if(LOGIN == false){
-            // Re log in after logged out
-            char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
-            memset(msg, '\0', MSG_SIZE);
-
-            msg = concatCMD(msg, parse_cmd);
-            printf("ConcatCMD %s\n", msg);
-
-            if(send(fd, msg, (strlen(msg)), 0) == strlen(msg)){
-                printf("Sent!\n");
-                LOGIN = true;
-            }
-            fflush(stdout);
-            free(msg);
-        }
-
     }
     else if(strcmp(cmd, "LOGOUT") == 0){
         printf("LOGOUT cmd recieved\n");
@@ -243,21 +236,20 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
             printf("Client not logged in, please log in first!\n");
         }
         else{
-                if(send(fd, LOGOUT, (strlen(LOGOUT)), 0) == strlen(LOGOUT)){
+                if(send(fd, LOGOUT, (strlen(LOGOUT)), 0) == strlen(LOGOUT))
                     printf("Sent!\n");
-                    LOGIN = false;
-                }
+                LOGIN = false;
         }
     }
-
-    else if((strcmp(cmd, "SEND") == 0) && (parse_cmd->arg_num >= 2)){ // For cmds with args, check arg number before accessing it to ensure security
+    else if(strcmp(cmd, "SEND") == 0){
         printf("SEND cmd revieved\n");
 
         char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
         memset(msg, '\0', MSG_SIZE);
 
-        msg = concatCMD(msg, parse_cmd);
-        printf("ConcatCMD %s\n", msg);
+        strcpy(msg, parse_cmd->arg0);
+        strcat(msg, " ");
+        strcat(msg, parse_cmd->arg1);
 
         if(send(fd, msg, (strlen(msg)), 0) == strlen(msg))
             printf("Sent!\n");
