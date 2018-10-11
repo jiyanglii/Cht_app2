@@ -365,50 +365,6 @@ int new_client(int new_fd, struct sockaddr * client_sock){
     }
     return 0;
 }
-
-// get sockaddr, IPv4 or IPv6:
-void *get_in_addr(struct sockaddr *sa)
-{
-    if (sa->sa_family == AF_INET) {
-        return &(((struct sockaddr_in*)sa)->sin_addr);
-    }
-    return &(((struct sockaddr_in6*)sa)->sin6_addr);
-}
-
-void processCMD(struct s_cmd * parse_cmd){
-    char *cmd = parse_cmd->cmd;
-
-
-    if(strcmp(cmd, "IP") == 0){
-        GetPrimaryIP(cmd); // call ip();
-    }
-    else if(strcmp(cmd, "AUTHOR") == 0){
-        const char* your_ubit_name = "jiyangli and yincheng";
-        cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
-        cse4589_print_and_log("I,%s,have read and understood the course academic integrity policy.\n",your_ubit_name);
-    }
-    else if(strcmp(cmd, "PORT") == 0){
-        cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
-        cse4589_print_and_log("PORT:%d\n", local_port);
-    }
-    else if (strcmp(cmd, "LOGOUT") == 0){
-        logout();
-    }
-    else if (strcmp(cmd, "LOGIN") == 0){
-        // Here handles when a client already in the list, but logged out, re log in here
-        // New client case is handles elsewhere
-        login();
-    }
-    else if (strcmp(cmd, "SEND") == 0){
-        // Validate destination IP and
-        if(forward())
-            printf("Message forwarding failed\n");
-    }
-    else{
-        printf("Invalid command!\n");
-    }
-}
-
 void GetPrimaryIP(char *cmd) {
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
     if(sock <0) {
@@ -443,3 +399,47 @@ void GetPrimaryIP(char *cmd) {
         close(sock);
     }
 }
+
+// get sockaddr, IPv4 or IPv6:
+void *get_in_addr(struct sockaddr *sa)
+{
+    if (sa->sa_family == AF_INET) {
+        return &(((struct sockaddr_in*)sa)->sin_addr);
+    }
+    return &(((struct sockaddr_in6*)sa)->sin6_addr);
+}
+
+void processCMD(struct s_cmd * parse_cmd){
+    char *cmd = parse_cmd->cmd;
+
+
+    if(strcmp(cmd, "IP") == 0){
+        GetPrimaryIP(cmd); // call ip();
+    }
+    else if(strcmp(cmd, "AUTHOR") == 0){
+        const char* your_ubit_name = "jiyangli and yincheng";
+        cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+        cse4589_print_and_log("I,%s,have read and understood the course academic integrity policy.\n",your_ubit_name);
+    }
+    else if(strcmp(cmd, "PORT") == 0){
+        cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+        cse4589_print_and_log("PORT:%d\n", s_local_port);
+    }
+    else if (strcmp(cmd, "LOGOUT") == 0){
+        logout();
+    }
+    else if (strcmp(cmd, "LOGIN") == 0){
+        // Here handles when a client already in the list, but logged out, re log in here
+        // New client case is handles elsewhere
+        login();
+    }
+    else if (strcmp(cmd, "SEND") == 0){
+        // Validate destination IP and
+        if(forward())
+            printf("Message forwarding failed\n");
+    }
+    else{
+        printf("Invalid command!\n");
+    }
+}
+

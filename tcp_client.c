@@ -221,9 +221,10 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
             // This is ran by start up, first to establish connection to server
             server = connect_to_host(parse_cmd->arg0, atoi(parse_cmd->arg1));
             
-            if(server < 0)
+            if(server < 0){
                 cse4589_print_and_log("[%s:ERROR]\n", cmd);
                 perror("Cannot create socket");
+            }
             else{
                 cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
                 /* Register the listening socket */
@@ -252,7 +253,6 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
             fflush(stdout);
             free(msg);
         }
-
     }
     else if(strcmp(cmd, "LOGOUT") == 0){
 //        printf("LOGOUT cmd recieved\n");
@@ -291,6 +291,6 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
     }
     else{
         cse4589_print_and_log("[%s:ERROR]\n", cmd);
-//        printf("Invalid command!\n");
+        printf("Invalid command!\n");
     }
 }
