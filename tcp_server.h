@@ -11,6 +11,7 @@
 #define MAX_MSG_BUFFER 100
 
 #define LOGOUT      "LOGOUT"
+#define EXIT        "EXIT"
 
 #define LOGGED_IN       1
 #define LOGGED_OUT      0
@@ -40,3 +41,4 @@ void processCMD(struct s_cmd * parse_cmd);
 
 int find_client_by_ip(char * ip);
 int find_client_by_fd(int fd);
+void remove_client_by_fd(int fd);

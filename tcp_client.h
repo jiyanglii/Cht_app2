@@ -10,6 +10,7 @@
 #define BUFFER_SIZE 256
 #define IP_SIZE     255
 #define LOGOUT      "LOGOUT"
+#define EXIT        "EXIT"
 
 
 int tcp_client(int c_PORT);

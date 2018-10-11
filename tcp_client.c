@@ -278,6 +278,22 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
     else if(strcmp(cmd, "PORT") == 0){
         printf("PORT:%d\n", local_port);
     }
+    else if(strcmp(cmd, EXIT) == 0){
+        printf("EXIT cmd recieved\n");
+        if(LOGIN == false){
+                send(fd, LOGOUT, (strlen(LOGOUT)), 0) == strlen(LOGOUT);
+                send(fd, EXIT, (strlen(EXIT)), 0) == strlen(EXIT);
+                LOGIN = false;
+                exit(0);
+        }
+        else{
+                if(send(fd, EXIT, (strlen(EXIT)), 0) == strlen(EXIT)){
+                    printf("Sent!\n");
+                    LOGIN = false;
+                    exit(0);
+                }
+        }
+    }
     else{
         printf("Invalid command!\n");
     }
