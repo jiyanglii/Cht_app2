@@ -32,6 +32,8 @@
 #include <unistd.h>
 #include "cmdTokenizer.h"
 #include "tcp_server.h"
+#include "../include/logger.h"
+
 
 static struct s_client client_list[MAX_CLIENT] = {0};
 static int client_count = 1;
@@ -85,7 +87,7 @@ int tcp_server(int s_PORT){
     FD_SET(STDIN, &master_list);
 
     head_socket = server_socket;
-    printf("\nserver_socket: %d\n", server_socket);
+//    printf("\nserver_socket: %d\n", server_socket);
 
     while(TRUE){
         memcpy(&watch_list, &master_list, sizeof(master_list));
@@ -378,10 +380,16 @@ void processCMD(struct s_cmd * parse_cmd){
 
 
     if(strcmp(cmd, "IP") == 0){
-                    // call ip();
+        GetPrimaryIP(cmd); // call ip();
+    }
+    else if(strcmp(cmd, "AUTHOR") == 0){
+        const char* your_ubit_name = "jiyangli and yincheng";
+        cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+        cse4589_print_and_log("I,%s,have read and understood the course academic integrity policy.\n",your_ubit_name);
     }
     else if(strcmp(cmd, "PORT") == 0){
-        printf("PORT:%d\n", s_local_port);
+        cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+        cse4589_print_and_log("PORT:%d\n", local_port);
     }
     else if (strcmp(cmd, "LOGOUT") == 0){
         logout();
@@ -398,5 +406,40 @@ void processCMD(struct s_cmd * parse_cmd){
     }
     else{
         printf("Invalid command!\n");
+    }
+}
+
+void GetPrimaryIP(char *cmd) {
+    int sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if(sock <0) {
+        perror("Can not create socket!");
+    }
+    const char*         GoogleIp = "8.8.8.8";
+    int                 GooglePort = 53;
+    struct              sockaddr_in serv;
+    unsigned    char    buffer[20];
+    memset(&serv, 0, sizeof(serv));
+    serv.sin_family      = AF_INET;
+    serv.sin_addr.s_addr = inet_addr(GoogleIp);
+    serv.sin_port        = htons(GooglePort);
+    
+    //connect(fdsocket, (struct sockaddr*)&remote_server_addr, sizeof(remote_server
+    if(connect(sock,(struct sockaddr*) &serv,sizeof(serv)) <0)
+        perror("can not connect");
+    else{
+        struct sockaddr_in name;
+        socklen_t namelen = sizeof(name);
+        if(getsockname(sock, (struct sockaddr *) &name, &namelen) <0)
+            perror("can not get host name");
+        
+        if(inet_ntop(AF_INET, (const void *)&name.sin_addr, (char *)&buffer[0], 20) < 0) {
+            printf("inet_ntop error");
+        }
+        else {
+            cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+            cse4589_print_and_log("IP:%s\n", buffer);
+            cse4589_print_and_log("[%s:END]\n", cmd);
+        }
+        close(sock);
     }
 }

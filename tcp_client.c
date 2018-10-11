@@ -33,6 +33,7 @@
 #include <arpa/inet.h>
 #include "cmdTokenizer.h"
 #include "tcp_client.h"
+#include "../include/logger.h"
 
 static struct s_cmd input_cmd;
 static uint8_t LOGIN_CMD = false; // This varible sets when recives a LOGIN cmd
@@ -63,7 +64,7 @@ int tcp_client(int c_PORT){
     FD_SET(STDIN, &master_list);
 
     head_socket = server;
-    printf("\nserver: %d\n", server);
+    //printf("\nserver: %d\n", server);
 
     while(TRUE){
         memcpy(&watch_list, &master_list, sizeof(master_list));
@@ -168,12 +169,12 @@ int connect_to_host(char *server_ip, int server_port)
     return fdsocket;
 }
 
-void GetPrimaryIP() {
+void GetPrimaryIP(char *cmd) {
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
     if(sock <0) {
       perror("Can not create socket!");
     }
-    const char*         GoogleIp = "127.0.0.1";
+    const char*         GoogleIp = "8.8.8.8";
     int                 GooglePort = 53;
     struct              sockaddr_in serv;
     unsigned    char    buffer[20];
@@ -185,43 +186,46 @@ void GetPrimaryIP() {
 //connect(fdsocket, (struct sockaddr*)&remote_server_addr, sizeof(remote_server
     if(connect(sock,(struct sockaddr*) &serv,sizeof(serv)) <0)
        perror("can not connect");
-
-    struct sockaddr_in name;
-    socklen_t namelen = sizeof(name);
-    if(getsockname(sock, (struct sockaddr *) &name, &namelen) <0)
-       perror("can not get host name");
-
-    if(inet_ntop(AF_INET, (const void *)&name.sin_addr, (char *)&buffer[0], 20) < 0) {
-        printf("inet_ntop error");
+    else{
+        struct sockaddr_in name;
+        socklen_t namelen = sizeof(name);
+        if(getsockname(sock, (struct sockaddr *) &name, &namelen) <0)
+            perror("can not get host name");
+        
+        if(inet_ntop(AF_INET, (const void *)&name.sin_addr, (char *)&buffer[0], 20) < 0) {
+            printf("inet_ntop error");
+        }
+        else {
+            cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+            cse4589_print_and_log("IP:%s\n", buffer);
+            cse4589_print_and_log("[%s:END]\n", cmd);
+        }
+        close(sock);
     }
-    else {
-        printf("presentation: %s \r\n", buffer);
-        printf("numeric: 0x%x \r\n",name.sin_addr.s_addr);
-//        exit(0);
-    }
-    close(sock);
 }
 
 void c_processCMD(struct s_cmd * parse_cmd, int fd){
     char *cmd = parse_cmd->cmd;
 
     if(strcmp(cmd, "IP") == 0){
-      GetPrimaryIP(); // call ip();
+      GetPrimaryIP(cmd); // call ip();
     }
     else if(strcmp(cmd, "AUTHOR") == 0){
       const char* your_ubit_name = "jiyangli and yincheng";
-      printf("I,%s,have read and understood the course academic integrity policy.\n",your_ubit_name);
+      cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+      cse4589_print_and_log("I,%s,have read and understood the course academic integrity policy.\n",your_ubit_name);
     }
     else if(strcmp(cmd, "LOGIN") == 0)
     {
-        printf("LOGIN cmd recieved\n");
-
         if(INIT_LOGIN){
             // This is ran by start up, first to establish connection to server
             server = connect_to_host(parse_cmd->arg0, atoi(parse_cmd->arg1));
+            
             if(server < 0)
+                cse4589_print_and_log("[%s:ERROR]\n", cmd);
                 perror("Cannot create socket");
             else{
+                cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
                 /* Register the listening socket */
                 FD_SET(server, &master_list);
                 if(server > head_socket) head_socket = server;
@@ -230,6 +234,7 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
             }
         }
         else if(LOGIN == true){
+            cse4589_print_and_log("[%s:ERROR]\n", cmd);
             printf("Client already logged in, please log out first!\n");
         }
         else if(LOGIN == false){
@@ -238,10 +243,10 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
             memset(msg, '\0', MSG_SIZE);
 
             msg = concatCMD(msg, parse_cmd);
-            printf("ConcatCMD %s\n", msg);
+            //printf("ConcatCMD %s\n", msg);
 
             if(send(fd, msg, (strlen(msg)), 0) == strlen(msg)){
-                printf("Sent!\n");
+                cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
                 LOGIN = true;
             }
             fflush(stdout);
@@ -250,35 +255,42 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
 
     }
     else if(strcmp(cmd, "LOGOUT") == 0){
-        printf("LOGOUT cmd recieved\n");
+//        printf("LOGOUT cmd recieved\n");
         if(LOGIN == false){
+            cse4589_print_and_log("[%s:ERROR]\n", cmd);
             printf("Client not logged in, please log in first!\n");
         }
         else{
                 if(send(fd, LOGOUT, (strlen(LOGOUT)), 0) == strlen(LOGOUT)){
-                    printf("Sent!\n");
+                    cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
                     LOGIN = false;
                 }
         }
     }
     else if((strcmp(cmd, "SEND") == 0) && (parse_cmd->arg_num >= 2)){ // For cmds with args, check arg number before accessing it to ensure security
-        printf("SEND cmd revieved\n");
+//        printf("SEND cmd revieved\n");
 
         char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
         memset(msg, '\0', MSG_SIZE);
 
         msg = concatCMD(msg, parse_cmd);
-        printf("ConcatCMD %s\n", msg);
+//        printf("ConcatCMD %s\n", msg);
 
         if(send(fd, msg, (strlen(msg)), 0) == strlen(msg))
-            printf("Sent!\n");
-        fflush(stdout);
+//            printf("Sent!\n");
+            cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+        else{
+            cse4589_print_and_log("[%s:ERROR]\n", cmd);
+        }
+//        fflush(stdout);
         free(msg);
     }
     else if(strcmp(cmd, "PORT") == 0){
-        printf("PORT:%d\n", local_port);
+        cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+        cse4589_print_and_log("PORT:%d\n", local_port);
     }
     else{
-        printf("Invalid command!\n");
+        cse4589_print_and_log("[%s:ERROR]\n", cmd);
+//        printf("Invalid command!\n");
     }
 }
