@@ -383,6 +383,46 @@ void broadcast(char * buffer) {
     }
 }
 
+void sort(int arr_a[], uint32_t arr_b[], int len) {
+   int      tmp;
+   uint32_t tmp_c;
+   for(int i = 0; i < len -1; i++) {
+       for(int j =0; j < len -1 -i; j++) {
+           if(arr_a[j] > arr_a[j + 1]) {
+              tmp        = arr_a[j];
+              arr_a[j]   = arr_a[j +1];
+              arr_a[j+1] = tmp;
+
+              tmp_c      = arr_b[j];
+              arr_b[j]   = arr_b[j +1];
+              arr_b[j+1] = tmp_c;
+           }
+       }
+   }
+}
+
+void list() {
+    int       arr_a[MAX_CLIENT-1];
+    uint32_t  arr_b[MAX_CLIENT-1];
+    int       arr_c[MAX_CLIENT-1];
+    int count = 0;
+    for(int i = 0; i < MAX_CLIENT; i++) {
+        if(client_list[i].fd != 0) {
+           arr_a[i] = client_list[i].port_num;
+           arr_b[i] = client_list[i].ip;
+           arr_c[i] = i;
+           count++;
+        }
+        else{
+            sort(arr_a,arr_b,count);
+            for(int k = 0; k < count; k++) {
+               printf("num_sequence:%d, ip_addr:%04x, ip_port:%d\n",k,arr_b[k],arr_a[k]);
+            }
+            break;
+        }
+    }
+}
+
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
 {
@@ -402,6 +442,10 @@ void processCMD(struct s_cmd * parse_cmd){
     }
     else if(strcmp(cmd, "PORT") == 0){
         printf("PORT:%d\n", s_local_port);
+    }
+    else if (strcmp(cmd, "LIST") == 0){
+        // Validate destination IP and
+        list();
     }
     else if (strcmp(cmd, "LOGOUT") == 0){
         logout();
