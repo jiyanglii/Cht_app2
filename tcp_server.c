@@ -119,7 +119,7 @@ int tcp_server(int s_PORT){
 
                         // process command
                         cmdTokenizer(cmd, &input_cmd);
-                        processCMD(&input_cmd);
+                        processCMD(&input_cmd,0);
 
                         //Process PA1 commands here ...
                         bzero(&input_cmd, sizeof(struct s_cmd));
@@ -148,14 +148,14 @@ int tcp_server(int s_PORT){
                     /* Read from existing clients */
                     else{
                         printf("\nLine %d: sock_index: %d\n", __LINE__, sock_index);
+
                         /* Initialize buffer to receieve response */
-                        char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
+                        char *buffer= (char*) malloc(sizeof(char)*BUFFER_SIZE);
                         memset(buffer, '\0', BUFFER_SIZE);
 
                         if(recv(sock_index, buffer, BUFFER_SIZE, 0) < 0){
                             close(sock_index);
                             printf("Remote Host terminated connection!\n");
-
                             // Remove client from client list
 
                             /* Remove from watched list */
@@ -166,8 +166,12 @@ int tcp_server(int s_PORT){
 
                             printf("\nClient sent me: %s\n", buffer);
 
-                            cmdTokenizer(buffer, &input_cmd);
-                            processCMD(&input_cmd);
+                            int src_ip;
+                                src_ip = client_addr.sin_addr.s_addr;
+                                printf("\nClient send ip_address is: %d\n", src_ip);
+
+                                cmdTokenizer(buffer, &input_cmd);
+                                processCMD(&input_cmd,src_ip);
 
                             //Process PA1 commands here ...
                             bzero(&input_cmd, sizeof(struct s_cmd));
@@ -364,20 +368,40 @@ int new_client(int new_fd, struct sockaddr * client_sock){
     }
     return 0;
 }
-void broadcast(char * buffer) {
-//     char s[INET_ADDRSTRLEN];
-//     struct sockaddr_in client_sock_in = *(struct sockaddr_in *)client_sock;
 
+void broadcast(char * buffer) {
     for(int i = 0; i < MAX_CLIENT; i++) {
         if(client_list[i].fd != 0) {
-            send(client_list[i].fd, buffer, (strlen(buffer)),0);
-            //inet_ntop(client_sock->sa_family,get_in_addr(client_sock), s , sizeof(s));
-            //if(client_list[i].ip != s) {
-            //}
-            printf("BROADCAST DOWN!\n");
+           if(client_list[i].fd != sock_index) {
+                 send(client_list[i].fd, buffer, (strlen(buffer)),0);
+           }
+           printf("BROADCAST DONE!\n");
         }
         else {
             //printf("BROADCAST ERROR!\n");
+            break;
+        }
+    }
+}
+
+void refresh() {
+    char *msg      = (char*) malloc(sizeof(char)*MSG_SIZE);
+//    char info[255] = "the ip is:";
+
+    for(int i = 0; i < MAX_CLIENT; i++) {
+        if((client_list[i].fd == sock_index)&&(client_list[i].fd == sock_index)) {
+           for(int j = 0; j < MAX_CLIENT; j++) {
+                   strcat(msg,"the ip is:");
+                   strcat(msg,"client_list[i].ip");
+                   strcat(msg,"the ip port is:");
+                   strcat(msg,"client_list[i].port_num");
+               if(client_list[j].fd != 0) {
+                  send(client_list[i].fd, msg, (strlen(msg)),0);
+               }
+           }
+           printf("REFRESH DONE!\n");
+        }
+        else {
             break;
         }
     }
@@ -432,13 +456,12 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-void processCMD(struct s_cmd * parse_cmd){
+void processCMD(struct s_cmd * parse_cmd, int src_ip){
     char *cmd    = parse_cmd->cmd;
     char *buffer = parse_cmd->arg0;
 
-
     if(strcmp(cmd, "IP") == 0){
-                    // call ip();
+         // call ip();
     }
     else if(strcmp(cmd, "PORT") == 0){
         printf("PORT:%d\n", s_local_port);
@@ -461,9 +484,11 @@ void processCMD(struct s_cmd * parse_cmd){
             printf("Message forwarding failed\n");
     }
     else if (strcmp(cmd, "BROADCAST") == 0){
-        // Validate destination IP and
         broadcast(buffer);
-        //printf("Message forwarding failed\n");
+    }
+    else if (strcmp(cmd, "REFRESH") == 0){
+        printf("refresh step 0\n");
+        refresh();
     }
     else{
         printf("Invalid command!\n");

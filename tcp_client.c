@@ -84,7 +84,6 @@ int tcp_client(int c_PORT){
 
                 if(FD_ISSET(sock_index, &watch_list)){
 
-
                     /* Check if new command on STDIN */
                     if (sock_index == STDIN){
                         char *cmd = (char*) malloc(sizeof(char)*CMD_SIZE);
@@ -248,7 +247,6 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
             fflush(stdout);
             free(msg);
         }
-
     }
     else if(strcmp(cmd, "LOGOUT") == 0){
         printf("LOGOUT cmd recieved\n");
@@ -262,8 +260,10 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
                 }
         }
     }
-    else if(((strcmp(cmd, "SEND") == 0)  && (parse_cmd->arg_num >= 2))
-          ||((strcmp(cmd, "BROADCAST") == 0)  && (parse_cmd->arg_num >= 1))){ // For cmds with args, check arg number before accessing it to ensure security, add BROADCAST function
+    else if(((strcmp(cmd, "SEND") == 0) && (parse_cmd->arg_num >= 2))
+          ||((strcmp(cmd, "BROADCAST") == 0) && (parse_cmd->arg_num >= 1))
+          ||((strcmp(cmd, "REFRESH") == 0) && (parse_cmd->arg_num >= 0))){
+      // For cmds with args, check arg number before accessing it to ensure security, add BROADCAST function
         printf("SEND cmd revieved\n");
 
         char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
