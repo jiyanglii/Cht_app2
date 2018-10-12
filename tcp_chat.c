@@ -30,7 +30,12 @@
 #include "tcp_client.h"
 #include "tcp_server.h"
 
-#define TRUE 1
+#ifndef __APPLE__
+#include "../include/logger.h"
+#else
+#define cse4589_print_and_log printf
+#endif
+
 #define MSG_SIZE 256
 #define BUFFER_SIZE 256
 #define IP_SIZE 255

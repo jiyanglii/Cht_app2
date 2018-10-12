@@ -21,6 +21,7 @@
  * This file contains the server init and main while loop for tha application.
  * Uses the select() API to multiplex between network I/O and STDIN.
  */
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -32,8 +33,12 @@
 #include <unistd.h>
 #include "cmdTokenizer.h"
 #include "tcp_server.h"
-#include "../include/logger.h"
 
+#ifndef __APPLE__
+#include "../include/logger.h"
+#else
+#define cse4589_print_and_log printf
+#endif
 
 static struct s_client client_list[MAX_CLIENT] = {0};
 static int client_count = 1;
@@ -154,8 +159,8 @@ int tcp_server(int s_PORT){
                         memset(buffer, '\0', BUFFER_SIZE);
 
                         if(recv(sock_index, buffer, BUFFER_SIZE, 0) < 0){
-                            close(sock_index);
                             printf("Remote Host terminated connection!\n");
+                            close(sock_index);
 
                             // Remove client from client list
 
@@ -326,6 +331,29 @@ int find_client_by_fd(int fd){
     return idx;
 }
 
+void remove_client_by_fd(int fd){
+
+    int idx = find_client_by_fd(fd);
+
+    // Wipe out the client
+    memset(&client_list[idx], 0, sizeof(struct s_client));
+    client_list[idx].fd = 0;
+
+    // Re order the client list to fill in the hole
+    for(int i = 0; i<(MAX_CLIENT - 1); i++){
+
+        if ((client_list[i].fd == 0) && (client_list[i+1].fd != 0)){
+            memcpy(&client_list[i], &client_list[i+1], sizeof(struct s_client));
+            memset(&client_list[i+1], 0, sizeof(struct s_client));
+            client_list[i+1].fd = 0;
+        }
+        else if ((client_list[i].fd == 0) && (client_list[i+1].fd == 0)){
+            // Break when two consecutive clients are empty
+            break;
+        }
+    }
+}
+
 int new_client(int new_fd, struct sockaddr * client_sock){
 
     char s[INET_ADDRSTRLEN];
@@ -403,6 +431,12 @@ void processCMD(struct s_cmd * parse_cmd){
         // Validate destination IP and
         if(forward())
             printf("Message forwarding failed\n");
+    }
+    else if (strcmp(cmd, EXIT) == 0){
+        // Do log out first
+        logout();
+        // Remove client from client list
+        remove_client_by_fd(sock_index);
     }
     else{
         printf("Invalid command!\n");

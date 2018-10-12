@@ -33,7 +33,12 @@
 #include <arpa/inet.h>
 #include "cmdTokenizer.h"
 #include "tcp_client.h"
+
+#ifndef __APPLE__
 #include "../include/logger.h"
+#else
+#define cse4589_print_and_log printf
+#endif
 
 static struct s_cmd input_cmd;
 static uint8_t LOGIN_CMD = false; // This varible sets when recives a LOGIN cmd
@@ -191,7 +196,7 @@ void GetPrimaryIP(char *cmd) {
         socklen_t namelen = sizeof(name);
         if(getsockname(sock, (struct sockaddr *) &name, &namelen) <0)
             perror("can not get host name");
-        
+
         if(inet_ntop(AF_INET, (const void *)&name.sin_addr, (char *)&buffer[0], 20) < 0) {
             printf("inet_ntop error");
         }
@@ -220,7 +225,7 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
         if(INIT_LOGIN){
             // This is ran by start up, first to establish connection to server
             server = connect_to_host(parse_cmd->arg0, atoi(parse_cmd->arg1));
-            
+
             if(server < 0){
                 cse4589_print_and_log("[%s:ERROR]\n", cmd);
                 perror("Cannot create socket");
@@ -288,6 +293,22 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
     else if(strcmp(cmd, "PORT") == 0){
         cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
         cse4589_print_and_log("PORT:%d\n", local_port);
+    }
+    else if(strcmp(cmd, EXIT) == 0){
+        printf("EXIT cmd recieved\n");
+        if(LOGIN == false){
+                send(fd, LOGOUT, (strlen(LOGOUT)), 0) == strlen(LOGOUT);
+                send(fd, EXIT, (strlen(EXIT)), 0) == strlen(EXIT);
+                LOGIN = false;
+                exit(0);
+        }
+        else{
+                if(send(fd, EXIT, (strlen(EXIT)), 0) == strlen(EXIT)){
+                    printf("Sent!\n");
+                    LOGIN = false;
+                    exit(0);
+                }
+        }
     }
     else{
         cse4589_print_and_log("[%s:ERROR]\n", cmd);

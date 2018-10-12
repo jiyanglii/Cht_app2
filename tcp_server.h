@@ -1,9 +1,12 @@
 
 #pragma once
 
+#ifndef TRUE
+#define TRUE        true
+#endif
+
 #define BACKLOG     5
 #define STDIN       0
-#define TRUE        1
 #define CMD_SIZE    100
 #define BUFFER_SIZE 256
 #define MSG_SIZE    256
@@ -11,6 +14,7 @@
 #define MAX_MSG_BUFFER 100
 
 #define LOGOUT      "LOGOUT"
+#define EXIT        "EXIT"
 
 #define LOGGED_IN       1
 #define LOGGED_OUT      0
@@ -35,8 +39,11 @@ int forward();
 int logout();
 int new_client(int fd, struct sockaddr*);
 void *get_in_addr(struct sockaddr *sa);
+
+struct s_cmd;
 void processCMD(struct s_cmd * parse_cmd);
 void GetPrimaryIP(char *cmd);
 
 int find_client_by_ip(char * ip);
 int find_client_by_fd(int fd);
+void remove_client_by_fd(int fd);
