@@ -34,6 +34,12 @@
 #include "cmdTokenizer.h"
 #include "tcp_server.h"
 
+#ifndef __APPLE__
+#include "../include/logger.h"
+#else
+#define cse4589_print_and_log printf
+#endif
+
 static struct s_client client_list[MAX_CLIENT] = {0};
 static int client_count = 1;
 static struct s_cmd input_cmd;
@@ -86,7 +92,7 @@ int tcp_server(int s_PORT){
     FD_SET(STDIN, &master_list);
 
     head_socket = server_socket;
-    printf("\nserver_socket: %d\n", server_socket);
+//    printf("\nserver_socket: %d\n", server_socket);
 
     while(TRUE){
         memcpy(&watch_list, &master_list, sizeof(master_list));
@@ -153,8 +159,8 @@ int tcp_server(int s_PORT){
                         memset(buffer, '\0', BUFFER_SIZE);
 
                         if(recv(sock_index, buffer, BUFFER_SIZE, 0) < 0){
-                            close(sock_index);
                             printf("Remote Host terminated connection!\n");
+                            close(sock_index);
 
                             // Remove client from client list
 
@@ -402,10 +408,16 @@ void processCMD(struct s_cmd * parse_cmd){
 
 
     if(strcmp(cmd, "IP") == 0){
-                    // call ip();
+        GetPrimaryIP(cmd); // call ip();
+    }
+    else if(strcmp(cmd, "AUTHOR") == 0){
+        const char* your_ubit_name = "jiyangli and yincheng";
+        cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+        cse4589_print_and_log("I,%s,have read and understood the course academic integrity policy.\n",your_ubit_name);
     }
     else if(strcmp(cmd, "PORT") == 0){
-        printf("PORT:%d\n", s_local_port);
+        cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+        cse4589_print_and_log("PORT:%d\n", s_local_port);
     }
     else if (strcmp(cmd, "LOGOUT") == 0){
         logout();
@@ -430,3 +442,4 @@ void processCMD(struct s_cmd * parse_cmd){
         printf("Invalid command!\n");
     }
 }
+

@@ -20,3 +20,4 @@ int connect_to_host(char *server_ip, int server_port);
 
 struct s_cmd;
 void c_processCMD(struct s_cmd * parse_cmd, int fd);
+void GetPrimaryIP(char *cmd);
