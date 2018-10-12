@@ -177,11 +177,11 @@ int tcp_server(int s_PORT){
                             printf("\nClient sent me: %s\n", buffer);
 
                             int src_ip;
-                                src_ip = client_addr.sin_addr.s_addr;
-                                printf("\nClient send ip_address is: %d\n", src_ip);
+                            src_ip = client_addr.sin_addr.s_addr;
+                            printf("\nClient send ip_address is: %d\n", src_ip);
 
-                                cmdTokenizer(buffer, &input_cmd);
-                                processCMD(&input_cmd);
+                            cmdTokenizer(buffer, &input_cmd);
+                            processCMD(&input_cmd);
 
                             //Process PA1 commands here ...
                             bzero(&input_cmd, sizeof(struct s_cmd));
@@ -439,7 +439,8 @@ void statistics(){
 void broadcast(struct s_cmd * cmd) {
     char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
 
-    memcpy(msg, cmd->arg0, sizeof(*cmd->arg0));
+    memset(msg, '\0', sizeof(char)*MSG_SIZE);
+    memcpy(msg, cmd->arg0, strlen(cmd->arg0));
 
     if(cmd->arg_num >= 2){
         strcat(msg, " ");
@@ -449,10 +450,8 @@ void broadcast(struct s_cmd * cmd) {
     for(int i = 0; i < MAX_CLIENT; i++) {
         if((client_list[i].fd != 0) && (client_list[i].fd != sock_index)) {
             send(client_list[i].fd, msg, (strlen(msg)),0);
-            //printf("BROADCAST DONE!\n");
         }
         else {
-            //printf("BROADCAST ERROR!\n");
             break;
         }
     }
