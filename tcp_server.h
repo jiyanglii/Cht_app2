@@ -23,7 +23,7 @@
 struct s_client{
     int client_id;
     char status;
-    char host_name[20];
+    char host_name[35];
     uint32_t ip;
     char ip_str[INET6_ADDRSTRLEN];
     int port_num;
@@ -39,6 +39,7 @@ int forward();
 int logout();
 int new_client(int fd, struct sockaddr*);
 void *get_in_addr(struct sockaddr *sa);
+void client_list_sort();
 
 struct s_cmd;
 void processCMD(struct s_cmd * parse_cmd, int src_ip);

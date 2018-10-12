@@ -29,6 +29,7 @@
 #include <sys/select.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netdb.h>
 #include <strings.h>
 #include <string.h>
 #include <unistd.h>
@@ -122,7 +123,7 @@ int tcp_server(int s_PORT){
                         if(fgets(cmd, CMD_SIZE-1, stdin) == NULL) //Mind the newline character that will be written to cmd
                             exit(-1);
 
-                        printf("\nI got: %s\n", cmd);
+                        //printf("\nI got: %s\n", cmd);
 
                         // process command
                         cmdTokenizer(cmd, &input_cmd);
@@ -134,13 +135,13 @@ int tcp_server(int s_PORT){
                     }
                     /* Check if new client is requesting connection */
                     else if(sock_index == server_socket){
-                        printf("\nLine %d: sock_index: %d\n", __LINE__, sock_index);
+                        //printf("\nLine %d: sock_index: %d\n", __LINE__, sock_index);
                         caddr_len = sizeof(client_addr);
                         fdaccept = accept(server_socket, (struct sockaddr *)&client_addr, (socklen_t *)&caddr_len);
                         if(fdaccept < 0)
                             perror("Accept failed.");
 
-                        printf("\nRemote Host connected!\n");
+                        //printf("\nRemote Host connected!\n");
 
                         // Add new client to client list
                         if(new_client(fdaccept,(struct sockaddr *)&client_addr))
@@ -303,7 +304,7 @@ int find_client_by_ip(char * ip){
     for(int i = 0; i<MAX_CLIENT; i++){
 
         if ((client_list[i].fd != 0) && (strcmp(client_list[i].ip_str, ip) == 0)){
-            printf("\nClient found!\n");
+            //printf("\nClient found!\n");
 
             idx = i;
 
@@ -323,7 +324,7 @@ int find_client_by_fd(int fd){
     for(int i = 0; i<MAX_CLIENT; i++){
 
         if ((client_list[i].fd != 0) && (client_list[i].fd == fd)){
-            printf("\nClient found!\n");
+            //printf("\nClient found!\n");
 
             idx = i;
 
@@ -365,17 +366,23 @@ int new_client(int new_fd, struct sockaddr * client_sock){
     char s[INET_ADDRSTRLEN];
     struct sockaddr_in client_sock_in = *(struct sockaddr_in *)client_sock;
 
+
     for(int i = 0; i<MAX_CLIENT; i++)
     {
         if (client_list[i].fd == 0)
         {
 
             inet_ntop(client_sock->sa_family,get_in_addr(client_sock), s , sizeof(s));
-            printf("server: got connection from ip %s\n", s);
-            printf("server: got connection from port %08d\n", htons(client_sock_in.sin_port));
+            //printf("server: got connection from ip %s\n", s);
+            //printf("server: got connection from port %08d\n", (client_sock_in.sin_port));
+
+            getnameinfo((struct sockaddr *)&client_sock_in, sizeof(client_sock_in), client_list[i].host_name, sizeof(client_list[i].host_name), NULL, 0, 0);
+
+            //printf("host: %s\n", client_list[i].host_name);
+            //printf("service: %s\n", service);
 
 
-            printf("%d\n", *(uint32_t *)get_in_addr(client_sock));
+            //printf("%d\n", *(uint32_t *)get_in_addr(client_sock));
 
             client_list[i].client_id = client_count;
             client_list[i].status = LOGGED_IN;
@@ -397,6 +404,10 @@ int new_client(int new_fd, struct sockaddr * client_sock){
             break;
         }
     }
+
+    // Re-order client list
+    client_list_sort();
+
     return 0;
 }
 
@@ -456,6 +467,51 @@ void sort(int arr_a[], uint32_t arr_b[], int len) {
    }
 }
 
+void client_swap(struct s_client *a, struct s_client *b){
+    struct s_client temp = {0};
+    temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+void client_list_sort(){
+    bool swapped = false;
+
+    // Max O(n*n)
+    for(int j = 0; j<MAX_CLIENT*MAX_CLIENT; j++){
+        for(int i = 0; i<(MAX_CLIENT - 1); i++){
+            if ((client_list[i].port_num > client_list[i+1].port_num) &&
+                (client_list[i].fd != 0) && (client_list[i+1].fd != 0))
+            {
+                client_swap(&client_list[i], &client_list[i+1]);
+                swapped = true;
+            }
+            else if ((client_list[i].fd == 0) || (client_list[i+1].fd == 0))
+                break;
+        }
+        if(swapped)
+            swapped = false;
+        else
+            break;
+    }
+}
+
+
+void list(){
+
+    for(int i = 0; i<MAX_CLIENT; i++){
+
+        if (client_list[i].fd != 0){
+            //printf("\nClient found!\n");
+            cse4589_print_and_log("%-5d%-35s%-20s%-8d\n", i, client_list[i].host_name, client_list[i].ip_str, client_list[i].port_num);
+        }
+        else if(client_list[i].fd == 0){
+            break;
+        }
+    }
+}
+
+/*
 void list() {
     int       arr_a[MAX_CLIENT-1];
     uint32_t  arr_b[MAX_CLIENT-1];
@@ -464,19 +520,20 @@ void list() {
     for(int i = 0; i < MAX_CLIENT; i++) {
         if(client_list[i].fd != 0) {
            arr_a[i] = client_list[i].port_num;
-           arr_b[i] = client_list[i].ip;
+           arr_b[i] = client_list[i].ip_str;
            arr_c[i] = i;
            count++;
         }
         else{
             sort(arr_a,arr_b,count);
             for(int k = 0; k < count; k++) {
-               printf("num_sequence:%d, ip_addr:%04x, ip_port:%d\n",k,arr_b[k],arr_a[k]);
+                cse4589_print_and_log("%-5d%-35s%-20s%-8d\n", k, "hostname", arr_b[k], arr_a[k]);
+                //printf("num_sequence:%d, ip_addr:%04x, ip_port:%d\n",k,arr_b[k],arr_a[k]);
             }
             break;
         }
     }
-}
+}*/
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -524,7 +581,10 @@ void processCMD(struct s_cmd * parse_cmd, int src_ip){
     }
     else if (strcmp(cmd, "LIST") == 0){
         // Validate destination IP and
+        cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
         list();
+        cse4589_print_and_log("[%s:END]\n", cmd);
+
     }
     else if (strcmp(cmd, "BROADCAST") == 0){
         broadcast(buffer);
@@ -532,6 +592,10 @@ void processCMD(struct s_cmd * parse_cmd, int src_ip){
     else if (strcmp(cmd, "REFRESH") == 0){
         printf("refresh step 0\n");
         refresh();
+    }
+    else if(strcmp(cmd, "") == 0){
+        // This handles empty cmd, do nothing and no error
+        printf("\n");
     }
     else{
         printf("Invalid command!\n");

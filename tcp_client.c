@@ -98,7 +98,7 @@ int tcp_client(int c_PORT){
                         if(fgets(cmd, CMD_SIZE-1, stdin) == NULL) //Mind the newline character that will be written to cmd
                             exit(-1);
 
-                        printf("\nI got: %s\n", cmd);
+                        //printf("\nI got: %s\n", cmd);
 
                         // process command
                         cmdTokenizer(cmd, &input_cmd);
@@ -312,6 +312,10 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
                     exit(0);
                 }
         }
+    }
+    else if(strcmp(cmd, "") == 0){
+        // This handles empty cmd, do nothing and no error
+        printf("\n");
     }
     else{
         cse4589_print_and_log("[%s:ERROR]\n", cmd);
