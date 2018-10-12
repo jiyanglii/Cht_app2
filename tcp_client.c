@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #include <strings.h>
 #include <string.h>
 #include <arpa/inet.h>
@@ -89,7 +90,6 @@ int tcp_client(int c_PORT){
 
                 if(FD_ISSET(sock_index, &watch_list)){
 
-
                     /* Check if new command on STDIN */
                     if (sock_index == STDIN){
                         char *cmd = (char*) malloc(sizeof(char)*CMD_SIZE);
@@ -98,7 +98,11 @@ int tcp_client(int c_PORT){
                         if(fgets(cmd, CMD_SIZE-1, stdin) == NULL) //Mind the newline character that will be written to cmd
                             exit(-1);
 
+<<<<<<< HEAD
                         // printf("\nI got: %s\n", cmd);
+=======
+                        //printf("\nI got: %s\n", cmd);
+>>>>>>> origin/DJ_N
 
                         // process command
                         cmdTokenizer(cmd, &input_cmd);
@@ -280,8 +284,11 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
                 }
         }
     }
-    else if((strcmp(cmd, "SEND") == 0) && (parse_cmd->arg_num >= 2)){ // For cmds with args, check arg number before accessing it to ensure security
-//        printf("SEND cmd revieved\n");
+    else if(((strcmp(cmd, "SEND") == 0) && (parse_cmd->arg_num >= 2))
+          ||((strcmp(cmd, "BROADCAST") == 0) && (parse_cmd->arg_num >= 1))
+          ||((strcmp(cmd, "REFRESH") == 0) && (parse_cmd->arg_num >= 0))){
+      // For cmds with args, check arg number before accessing it to ensure security, add BROADCAST function
+        printf("SEND cmd revieved\n");
 
         char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
         memset(msg, '\0', MSG_SIZE);
@@ -311,8 +318,9 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
         printf("EXIT cmd recieved\n");
         cse4589_print_and_log("[%s:END]\n", cmd);
         if(LOGIN == false){
-                send(fd, LOGOUT, (strlen(LOGOUT)), 0) == strlen(LOGOUT);
-                send(fd, EXIT, (strlen(EXIT)), 0) == strlen(EXIT);
+                send(fd, LOGOUT, (strlen(LOGOUT)), 0);
+                send(fd, EXIT, (strlen(EXIT)), 0);
+                usleep(100);
                 LOGIN = false;
                 exit(0);
         }
@@ -323,6 +331,10 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
                     exit(0);
                 }
         }
+    }
+    else if(strcmp(cmd, "") == 0){
+        // This handles empty cmd, do nothing and no error
+        printf("\n");
     }
     else{
         cse4589_print_and_log("[%s:ERROR]\n", cmd);
