@@ -218,7 +218,8 @@ int forward(){
             printf("Buffering msg!\n");
 
             // Find a spot in the buffer
-            for(int j = 0; j < MAX_MSG_BUFFER; j++){
+            int j;
+            for(j = 0; j < MAX_MSG_BUFFER; j++){
                 printf("%s\n", client_list[id_dst].buffer[j]);
                 if(!client_list[id_dst].buffer[j]){
                     client_list[id_dst].buffer[j] = (char*) malloc(sizeof(char)*(strlen(msg)));
