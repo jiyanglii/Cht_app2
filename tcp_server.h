@@ -36,7 +36,7 @@ int logout();
 int new_client(int fd, struct sockaddr*);
 void *get_in_addr(struct sockaddr *sa);
 void processCMD(struct s_cmd * parse_cmd);
-
+void GetPrimaryIP(char *cmd);
 
 int find_client_by_ip(char * ip);
 int find_client_by_fd(int fd);

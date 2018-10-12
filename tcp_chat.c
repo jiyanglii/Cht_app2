@@ -43,12 +43,12 @@ int main(int argc, char **argv){
     else
     {
         if (strcmp("c", argv[1]) == 0) {
-            printf("[%s:SUCCESS]\n", *argv);
+            cse4589_print_and_log("[%s:SUCCESS]\n", *argv);
 
             tcp_client(atoi(argv[2]));
         }
         else if(strcmp("s", argv[1]) == 0) {
-            printf("[%s:SUCCESS]\n", *argv);
+            cse4589_print_and_log("[%s:SUCCESS]\n", *argv);
 
             tcp_server(atoi(argv[2]));
         }

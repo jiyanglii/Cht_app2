@@ -365,40 +365,6 @@ int new_client(int new_fd, struct sockaddr * client_sock){
     }
     return 0;
 }
-void GetPrimaryIP(char *cmd) {
-    int sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if(sock <0) {
-        perror("Can not create socket!");
-    }
-    const char*         GoogleIp = "8.8.8.8";
-    int                 GooglePort = 53;
-    struct              sockaddr_in serv;
-    unsigned    char    buffer[20];
-    memset(&serv, 0, sizeof(serv));
-    serv.sin_family      = AF_INET;
-    serv.sin_addr.s_addr = inet_addr(GoogleIp);
-    serv.sin_port        = htons(GooglePort);
-    
-    //connect(fdsocket, (struct sockaddr*)&remote_server_addr, sizeof(remote_server
-    if(connect(sock,(struct sockaddr*) &serv,sizeof(serv)) <0)
-        perror("can not connect");
-    else{
-        struct sockaddr_in name;
-        socklen_t namelen = sizeof(name);
-        if(getsockname(sock, (struct sockaddr *) &name, &namelen) <0)
-            perror("can not get host name");
-        
-        if(inet_ntop(AF_INET, (const void *)&name.sin_addr, (char *)&buffer[0], 20) < 0) {
-            printf("inet_ntop error");
-        }
-        else {
-            cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
-            cse4589_print_and_log("IP:%s\n", buffer);
-            cse4589_print_and_log("[%s:END]\n", cmd);
-        }
-        close(sock);
-    }
-}
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
