@@ -50,10 +50,11 @@ static int s_local_port = 0;
 
 static fd_set master_list, watch_list;
 static int sock_index = 0;
+static int head_socket = 0;
 
 int tcp_server(int s_PORT){
 
-    int port, server_socket, head_socket, selret, fdaccept=0, caddr_len;
+    int port, server_socket, selret, fdaccept=0, caddr_len;
     struct sockaddr_in server_addr, client_addr;
 
     /* Socket */
@@ -126,7 +127,7 @@ int tcp_server(int s_PORT){
 
                         // process command
                         cmdTokenizer(cmd, &input_cmd);
-                        processCMD(&input_cmd,0);
+                        processCMD(&input_cmd);
 
                         //Process PA1 commands here ...
                         bzero(&input_cmd, sizeof(struct s_cmd));
@@ -180,7 +181,7 @@ int tcp_server(int s_PORT){
                                 printf("\nClient send ip_address is: %d\n", src_ip);
 
                                 cmdTokenizer(buffer, &input_cmd);
-                                processCMD(&input_cmd,src_ip);
+                                processCMD(&input_cmd);
 
                             //Process PA1 commands here ...
                             bzero(&input_cmd, sizeof(struct s_cmd));
@@ -569,7 +570,7 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-void processCMD(struct s_cmd * parse_cmd, int src_ip){
+void processCMD(struct s_cmd * parse_cmd){
     char *cmd    = parse_cmd->cmd;
     char *buffer = parse_cmd->arg0;
 
@@ -601,11 +602,24 @@ void processCMD(struct s_cmd * parse_cmd, int src_ip){
             printf("Message forwarding failed\n");
     }
     else if (strcmp(cmd, EXIT) == 0){
-        // Do log out first
-        logout();
-        FD_CLR(sock_index, &master_list);
-        // Remove client from client list
-        remove_client_by_fd(sock_index);
+        if(sock_index == STDIN){
+            // EXIT server
+            for(int i = 3; i<=head_socket; i++){
+                shutdown(i, SHUT_WR);
+                usleep(20);
+                close(i);
+                FD_CLR(i, &master_list);
+            }
+            head_socket = 2;
+            exit(0);
+        }
+        else{ // A client is trying to EXIT
+            // Do log out first
+            logout();
+            FD_CLR(sock_index, &master_list);
+            // Remove client from client list
+            remove_client_by_fd(sock_index);
+        }
     }
     else if (strcmp(cmd, "LIST") == 0){
         // Validate destination IP and

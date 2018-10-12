@@ -44,7 +44,7 @@ void *get_in_addr(struct sockaddr *sa);
 void client_list_sort();
 
 struct s_cmd;
-void processCMD(struct s_cmd * parse_cmd, int src_ip);
+void processCMD(struct s_cmd * parse_cmd);
 void GetPrimaryIP(char *cmd);
 
 int find_client_by_ip(char * ip);
