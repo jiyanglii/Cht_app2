@@ -48,13 +48,13 @@ static struct s_cmd input_cmd;
 
 static int s_local_port = 0;
 
+static fd_set master_list, watch_list;
 static int sock_index = 0;
 
 int tcp_server(int s_PORT){
 
     int port, server_socket, head_socket, selret, fdaccept=0, caddr_len;
     struct sockaddr_in server_addr, client_addr;
-    fd_set master_list, watch_list;
 
     /* Socket */
     server_socket = socket(AF_INET, SOCK_STREAM, 0); /* socket - create an endpoint for communication
@@ -211,6 +211,7 @@ int forward(){
     if(id_dst != -1){
 
         id_src = find_client_by_fd(sock_index);
+        client_list[id_src].msg_sent++;
 
         memcpy(&dest_ip_str[0],client_list[id_src].ip_str,sizeof(dest_ip_str));
 
@@ -219,6 +220,8 @@ int forward(){
         msg = concatCMD(msg, &input_cmd);
 
         if (client_list[id_dst].status == LOGGED_IN){
+
+            client_list[id_dst].msg_rev++;
             // When logged in, directly forward msg, find out incoming client by its FD
 
             if(send(client_list[id_dst].fd, msg, (strlen(msg)), 0) == strlen(msg))
@@ -269,6 +272,7 @@ int login(){
                 fflush(stdout);
                 free(client_list[id_src].buffer[j]);
                 client_list[id_src].buffer[j] = NULL;
+                client_list[id_src].msg_rev++;
             }
             else{
                 // Reach the end
@@ -350,7 +354,8 @@ void remove_client_by_fd(int fd){
     for(int i = 0; i<(MAX_CLIENT - 1); i++){
 
         if ((client_list[i].fd == 0) && (client_list[i+1].fd != 0)){
-            memcpy(&client_list[i], &client_list[i+1], sizeof(struct s_client));
+            client_list[i] = client_list[i+1];
+            //memcpy(&client_list[i], &client_list[i+1], sizeof(struct s_client));
             memset(&client_list[i+1], 0, sizeof(struct s_client));
             client_list[i+1].fd = 0;
         }
@@ -393,6 +398,9 @@ int new_client(int new_fd, struct sockaddr * client_sock){
             client_list[i].fd = new_fd;
             client_list[i].client_info = client_sock_in;
 
+            client_list[i].msg_rev = 0;
+            client_list[i].msg_sent = 0;
+
             //printf("getpeername:%d\n", getpeername(new_fd, client_sock, (socklen_t *)sizeof(struct sockaddr)));
             //printf("gethostname:%d\n", gethostname(fd, &client_sock, sizeof(client_sock)));
 
@@ -409,6 +417,22 @@ int new_client(int new_fd, struct sockaddr * client_sock){
     client_list_sort();
 
     return 0;
+}
+
+void statistics(){
+    for(int i = 0; i<MAX_CLIENT; i++){
+
+        if (client_list[i].fd != 0){
+            //printf("\nClient found!\n");
+            if(client_list[i].status)
+                cse4589_print_and_log("%-5d%-35s%-8d%-8d%-8s\n", i+1, client_list[i].host_name, client_list[i].msg_sent, client_list[i].msg_rev, loggedin);
+            else
+                cse4589_print_and_log("%-5d%-35s%-8d%-8d%-8s\n", i+1, client_list[i].host_name, client_list[i].msg_sent, client_list[i].msg_rev, loggedout);
+        }
+        else if(client_list[i].fd == 0){
+            break;
+        }
+    }
 }
 
 void broadcast(char * buffer) {
@@ -447,6 +471,8 @@ void refresh() {
             break;
         }
     }
+
+    free(msg);
 }
 
 void sort(int arr_a[], uint32_t arr_b[], int len) {
@@ -501,9 +527,9 @@ void list(){
 
     for(int i = 0; i<MAX_CLIENT; i++){
 
-        if (client_list[i].fd != 0){
+        if ((client_list[i].fd != 0) && (client_list[i].status == LOGGED_IN)){
             //printf("\nClient found!\n");
-            cse4589_print_and_log("%-5d%-35s%-20s%-8d\n", i, client_list[i].host_name, client_list[i].ip_str, client_list[i].port_num);
+            cse4589_print_and_log("%-5d%-35s%-20s%-8d\n", i+1, client_list[i].host_name, client_list[i].ip_str, client_list[i].port_num);
         }
         else if(client_list[i].fd == 0){
             break;
@@ -576,6 +602,7 @@ void processCMD(struct s_cmd * parse_cmd, int src_ip){
     else if (strcmp(cmd, EXIT) == 0){
         // Do log out first
         logout();
+        FD_CLR(sock_index, &master_list);
         // Remove client from client list
         remove_client_by_fd(sock_index);
     }
@@ -587,11 +614,18 @@ void processCMD(struct s_cmd * parse_cmd, int src_ip){
 
     }
     else if (strcmp(cmd, "BROADCAST") == 0){
+        cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
         broadcast(buffer);
+        cse4589_print_and_log("[%s:END]\n", cmd);
     }
     else if (strcmp(cmd, "REFRESH") == 0){
         printf("refresh step 0\n");
         refresh();
+    }
+    else if (strcmp(cmd, "STATISTICS") == 0){
+        cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+        statistics();
+        cse4589_print_and_log("[%s:END]\n", cmd);
     }
     else if(strcmp(cmd, "") == 0){
         // This handles empty cmd, do nothing and no error

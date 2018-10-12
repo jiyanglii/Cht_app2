@@ -302,6 +302,7 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
         if(LOGIN == false){
                 send(fd, LOGOUT, (strlen(LOGOUT)), 0);
                 send(fd, EXIT, (strlen(EXIT)), 0);
+                usleep(100);
                 LOGIN = false;
                 exit(0);
         }

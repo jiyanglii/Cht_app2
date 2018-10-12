@@ -19,10 +19,12 @@
 #define LOGGED_IN       1
 #define LOGGED_OUT      0
 
+#define loggedin        "logged-in"
+#define loggedout       "logged-out"
 
 struct s_client{
     int client_id;
-    char status;
+    bool status;
     char host_name[35];
     uint32_t ip;
     char ip_str[INET6_ADDRSTRLEN];
