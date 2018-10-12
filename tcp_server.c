@@ -435,23 +435,31 @@ void statistics(){
     }
 }
 
-void broadcast(char * buffer) {
+void broadcast(struct s_cmd * cmd) {
+    char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
+
+    memcpy(msg, cmd->arg0, sizeof(*cmd->arg0));
+
+    if(cmd->arg_num >= 2){
+        strcat(msg, " ");
+        strcat(msg, cmd->arg1);
+    }
+
     for(int i = 0; i < MAX_CLIENT; i++) {
-        if(client_list[i].fd != 0) {
-           if(client_list[i].fd != sock_index) {
-                 send(client_list[i].fd, buffer, (strlen(buffer)),0);
-           }
-           printf("BROADCAST DONE!\n");
+        if((client_list[i].fd != 0) && (client_list[i].fd != sock_index)) {
+            send(client_list[i].fd, msg, (strlen(msg)),0);
+            //printf("BROADCAST DONE!\n");
         }
         else {
             //printf("BROADCAST ERROR!\n");
             break;
         }
     }
+    free(msg);
 }
 
 void refresh() {
-    char *msg      = (char*) malloc(sizeof(char)*MSG_SIZE);
+    char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
 //    char info[255] = "the ip is:";
 
     for(int i = 0; i < MAX_CLIENT; i++) {
@@ -630,7 +638,7 @@ void processCMD(struct s_cmd * parse_cmd){
     }
     else if (strcmp(cmd, "BROADCAST") == 0){
         cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
-        broadcast(buffer);
+        broadcast(parse_cmd);
         cse4589_print_and_log("[%s:END]\n", cmd);
     }
     else if (strcmp(cmd, "REFRESH") == 0){
