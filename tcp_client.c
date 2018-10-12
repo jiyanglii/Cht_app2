@@ -219,7 +219,7 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
       cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
       cse4589_print_and_log("I,%s,have read and understood the course academic integrity policy.\n",your_ubit_name);
     }
-    else if(strcmp(cmd, "LOGIN") == 0)
+    else if((strcmp(cmd, "LOGIN") == 0) && (parse_cmd->arg_num >= 2))
     {
         if(INIT_LOGIN){
             // This is ran by start up, first to establish connection to server
