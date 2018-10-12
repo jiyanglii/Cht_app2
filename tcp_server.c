@@ -121,7 +121,7 @@ int tcp_server(int s_PORT){
                         if(fgets(cmd, CMD_SIZE-1, stdin) == NULL) //Mind the newline character that will be written to cmd
                             exit(-1);
 
-                        printf("\nI got: %s\n", cmd);
+//                        printf("\nI got: %s\n", cmd);
 
                         // process command
                         cmdTokenizer(cmd, &input_cmd);
@@ -133,11 +133,13 @@ int tcp_server(int s_PORT){
                     }
                     /* Check if new client is requesting connection */
                     else if(sock_index == server_socket){
-                        printf("\nLine %d: sock_index: %d\n", __LINE__, sock_index);
+//                        printf("\nLine %d: sock_index: %d\n", __LINE__, sock_index);
                         caddr_len = sizeof(client_addr);
                         fdaccept = accept(server_socket, (struct sockaddr *)&client_addr, (socklen_t *)&caddr_len);
-                        if(fdaccept < 0)
+                        if(fdaccept < 0){
                             perror("Accept failed.");
+                        }
+                        
 
                         printf("\nRemote Host connected!\n");
 
@@ -153,7 +155,7 @@ int tcp_server(int s_PORT){
                     }
                     /* Read from existing clients */
                     else{
-                        printf("\nLine %d: sock_index: %d\n", __LINE__, sock_index);
+//                        printf("\nLine %d: sock_index: %d\n", __LINE__, sock_index);
                         /* Initialize buffer to receieve response */
                         char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
                         memset(buffer, '\0', BUFFER_SIZE);
@@ -220,16 +222,16 @@ int forward(){
         }
         else{
             // Client not logged in, buffer the msg
-            printf("Buffering msg!\n");
+//            printf("Buffering msg!\n");
 
             // Find a spot in the buffer
             for(int j = 0; j < MAX_MSG_BUFFER; j++){
-                printf("%s\n", client_list[id_dst].buffer[j]);
+//                printf("%s\n", client_list[id_dst].buffer[j]);
                 if(!client_list[id_dst].buffer[j]){
                     client_list[id_dst].buffer[j] = (char*) malloc(sizeof(char)*(strlen(msg)));
                     memcpy(client_list[id_dst].buffer[j], msg, sizeof(char)*(strlen(msg)));
 
-                    printf("Buffered msg: %s\n", client_list[id_dst].buffer[j]);
+//                    printf("Buffered msg: %s\n", client_list[id_dst].buffer[j]);
 
                     break;
                 }
@@ -297,7 +299,7 @@ int find_client_by_ip(char * ip){
     for(int i = 0; i<MAX_CLIENT; i++){
 
         if ((client_list[i].fd != 0) && (strcmp(client_list[i].ip_str, ip) == 0)){
-            printf("\nClient found!\n");
+//            printf("\nClient found!\n");
 
             idx = i;
 
@@ -317,7 +319,7 @@ int find_client_by_fd(int fd){
     for(int i = 0; i<MAX_CLIENT; i++){
 
         if ((client_list[i].fd != 0) && (client_list[i].fd == fd)){
-            printf("\nClient found!\n");
+//            printf("\nClient found!\n");
 
             idx = i;
 
@@ -365,11 +367,11 @@ int new_client(int new_fd, struct sockaddr * client_sock){
         {
 
             inet_ntop(client_sock->sa_family,get_in_addr(client_sock), s , sizeof(s));
-            printf("server: got connection from ip %s\n", s);
-            printf("server: got connection from port %08d\n", htons(client_sock_in.sin_port));
+//            printf("server: got connection from ip %s\n", s);
+//            printf("server: got connection from port %08d\n", htons(client_sock_in.sin_port));
 
 
-            printf("%d\n", *(uint32_t *)get_in_addr(client_sock));
+//            printf("%d\n", *(uint32_t *)get_in_addr(client_sock));
 
             client_list[i].client_id = client_count;
             client_list[i].status = LOGGED_IN;
@@ -414,10 +416,12 @@ void processCMD(struct s_cmd * parse_cmd){
         const char* your_ubit_name = "jiyangli and yincheng";
         cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
         cse4589_print_and_log("I,%s,have read and understood the course academic integrity policy.\n",your_ubit_name);
+        cse4589_print_and_log("[%s:END]\n", cmd);
     }
     else if(strcmp(cmd, "PORT") == 0){
         cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
         cse4589_print_and_log("PORT:%d\n", s_local_port);
+        cse4589_print_and_log("[%s:END]\n", cmd);
     }
     else if (strcmp(cmd, "LOGOUT") == 0){
         logout();
@@ -439,7 +443,9 @@ void processCMD(struct s_cmd * parse_cmd){
         remove_client_by_fd(sock_index);
     }
     else{
+        cse4589_print_and_log("[%s:ERROR]\n", cmd);
         printf("Invalid command!\n");
+        cse4589_print_and_log("[%s:END]\n", cmd);
     }
 }
 

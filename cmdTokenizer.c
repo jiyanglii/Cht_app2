@@ -10,7 +10,7 @@
 #include <unistd.h>
 #include "cmdTokenizer.h"
 
-#define DEBUG
+//#define DEBUG
 
 void cmdTokenizer(char *input, struct s_cmd * parse_cmd){
 
