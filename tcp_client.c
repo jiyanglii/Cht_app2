@@ -98,11 +98,7 @@ int tcp_client(int c_PORT){
                         if(fgets(cmd, CMD_SIZE-1, stdin) == NULL) //Mind the newline character that will be written to cmd
                             exit(-1);
 
-<<<<<<< HEAD
                         // printf("\nI got: %s\n", cmd);
-=======
-                        //printf("\nI got: %s\n", cmd);
->>>>>>> origin/DJ_N
 
                         // process command
                         cmdTokenizer(cmd, &input_cmd);
