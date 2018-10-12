@@ -117,14 +117,13 @@ int tcp_client(int c_PORT){
                         char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
                         memset(buffer, '\0', BUFFER_SIZE);
 
-                        if(recv(sock_index, buffer, BUFFER_SIZE, 0) < 0){
+                        if(recv(sock_index, buffer, BUFFER_SIZE, 0) <= 0){
                             close(sock_index);
                             printf("Remote Host terminated connection!\n");
 
-                            // Remove client from client list
-
                             /* Remove from watched list */
                             FD_CLR(sock_index, &master_list);
+                            INIT_LOGIN = true;
                         }
                         else {
                             printf("\nServer sent me: %s\n", buffer);
@@ -307,11 +306,9 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
                 exit(0);
         }
         else{
-                if(send(fd, EXIT, (strlen(EXIT)), 0) == strlen(EXIT)){
-                    printf("Sent!\n");
-                    LOGIN = false;
-                    exit(0);
-                }
+                send(fd, EXIT, (strlen(EXIT)), 0);
+                LOGIN = false;
+                exit(0);
         }
     }
     else if(strcmp(cmd, "") == 0){
