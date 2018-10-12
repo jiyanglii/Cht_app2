@@ -28,11 +28,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #include <strings.h>
 #include <string.h>
 #include <arpa/inet.h>
 #include "cmdTokenizer.h"
 #include "tcp_client.h"
+
+#ifndef __APPLE__
+#include "../include/logger.h"
+#else
+#define cse4589_print_and_log printf
+#endif
 
 static struct s_cmd input_cmd;
 static uint8_t LOGIN_CMD = false; // This varible sets when recives a LOGIN cmd
@@ -62,7 +69,7 @@ int tcp_client(int c_PORT){
     FD_SET(STDIN, &master_list);
 
     head_socket = server;
-    printf("\nserver: %d\n", server);
+    //printf("\nserver: %d\n", server);
 
     while(TRUE){
         memcpy(&watch_list, &master_list, sizeof(master_list));
@@ -82,7 +89,6 @@ int tcp_client(int c_PORT){
 
                 if(FD_ISSET(sock_index, &watch_list)){
 
-
                     /* Check if new command on STDIN */
                     if (sock_index == STDIN){
                         char *cmd = (char*) malloc(sizeof(char)*CMD_SIZE);
@@ -91,7 +97,7 @@ int tcp_client(int c_PORT){
                         if(fgets(cmd, CMD_SIZE-1, stdin) == NULL) //Mind the newline character that will be written to cmd
                             exit(-1);
 
-                        printf("\nI got: %s\n", cmd);
+                        //printf("\nI got: %s\n", cmd);
 
                         // process command
                         cmdTokenizer(cmd, &input_cmd);
@@ -110,14 +116,13 @@ int tcp_client(int c_PORT){
                         char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
                         memset(buffer, '\0', BUFFER_SIZE);
 
-                        if(recv(sock_index, buffer, BUFFER_SIZE, 0) < 0){
+                        if(recv(sock_index, buffer, BUFFER_SIZE, 0) <= 0){
                             close(sock_index);
                             printf("Remote Host terminated connection!\n");
 
-                            // Remove client from client list
-
                             /* Remove from watched list */
                             FD_CLR(sock_index, &master_list);
+                            INIT_LOGIN = true;
                         }
                         else {
                             printf("\nServer sent me: %s\n", buffer);
@@ -181,21 +186,22 @@ void GetPrimaryIP(char *cmd) {
 //connect(fdsocket, (struct sockaddr*)&remote_server_addr, sizeof(remote_server
     if(connect(sock,(struct sockaddr*) &serv,sizeof(serv)) <0)
        perror("can not connect");
+    else{
+        struct sockaddr_in name;
+        socklen_t namelen = sizeof(name);
+        if(getsockname(sock, (struct sockaddr *) &name, &namelen) <0)
+            perror("can not get host name");
 
-    struct sockaddr_in name;
-    socklen_t namelen = sizeof(name);
-    if(getsockname(sock, (struct sockaddr *) &name, &namelen) <0)
-       perror("can not get host name");
-    
-    if(inet_ntop(AF_INET, (const void *)&name.sin_addr, buffer, 20) < 0) {
-        printf("inet_ntop error");
+        if(inet_ntop(AF_INET, (const void *)&name.sin_addr, (char *)&buffer[0], 20) < 0) {
+            printf("inet_ntop error");
+        }
+        else {
+            cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+            cse4589_print_and_log("IP:%s\n", buffer);
+            cse4589_print_and_log("[%s:END]\n", cmd);
+        }
+        close(sock);
     }
-    else {
-        printf("[%s:SUCCESS]\n", cmd);
-        printf("IP:%s\n",buffer);
-        printf("[%s:END]\n", cmd);
-    }
-    close(sock);
 }
 
 
@@ -209,57 +215,114 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
     }
     else if(strcmp(cmd, "AUTHOR") == 0){
       const char* your_ubit_name = "jiyangli and yincheng";
-      printf("I,%s,have read and understood the course academic integrity policy.\n",your_ubit_name);
+      cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+      cse4589_print_and_log("I,%s,have read and understood the course academic integrity policy.\n",your_ubit_name);
     }
     else if(strcmp(cmd, "LOGIN") == 0)
     {
-        printf("LOGIN cmd recieved\n");
-
-        if(LOGIN == true){
-            printf("Client already logged in, please log out first!\n");
-        }
-        else{
+        if(INIT_LOGIN){
+            // This is ran by start up, first to establish connection to server
             server = connect_to_host(parse_cmd->arg0, atoi(parse_cmd->arg1));
-            if(server < 0)
+
+            if(server < 0){
+                cse4589_print_and_log("[%s:ERROR]\n", cmd);
                 perror("Cannot create socket");
+            }
             else{
+                cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
                 /* Register the listening socket */
                 FD_SET(server, &master_list);
                 if(server > head_socket) head_socket = server;
                 LOGIN = true;
             }
         }
+        else if(LOGIN == true){
+            cse4589_print_and_log("[%s:ERROR]\n", cmd);
+            printf("Client already logged in, please log out first!\n");
+        }
+        else if(LOGIN == false){
+            // Re log in after logged out
+            char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
+            memset(msg, '\0', MSG_SIZE);
+
+            msg = concatCMD(msg, parse_cmd);
+            //printf("ConcatCMD %s\n", msg);
+
+            if(send(fd, msg, (strlen(msg)), 0) == strlen(msg)){
+                cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+                LOGIN = true;
+            }
+            fflush(stdout);
+            free(msg);
+        }
     }
     else if(strcmp(cmd, "LOGOUT") == 0){
-        printf("LOGOUT cmd recieved\n");
+//        printf("LOGOUT cmd recieved\n");
         if(LOGIN == false){
+            cse4589_print_and_log("[%s:ERROR]\n", cmd);
             printf("Client not logged in, please log in first!\n");
         }
         else{
-                if(send(fd, LOGOUT, (strlen(LOGOUT)), 0) == strlen(LOGOUT))
-                    printf("Sent!\n");
-                LOGIN = false;
+                if(send(fd, LOGOUT, (strlen(LOGOUT)), 0) == strlen(LOGOUT)){
+                    cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+                    cse4589_print_and_log("[%s:END]\n", cmd);
+                    LOGIN = false;
+                }
         }
     }
-    else if(strcmp(cmd, "SEND") == 0){
+    else if(((strcmp(cmd, "SEND") == 0) && (parse_cmd->arg_num >= 2))
+          ||((strcmp(cmd, "BROADCAST") == 0) && (parse_cmd->arg_num >= 1))
+          ||((strcmp(cmd, "REFRESH") == 0) && (parse_cmd->arg_num >= 0))){
+      // For cmds with args, check arg number before accessing it to ensure security, add BROADCAST function
         printf("SEND cmd revieved\n");
 
         char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
         memset(msg, '\0', MSG_SIZE);
 
-        strcpy(msg, parse_cmd->arg0);
-        strcat(msg, " ");
-        strcat(msg, parse_cmd->arg1);
+        msg = concatCMD(msg, parse_cmd);
+//        printf("ConcatCMD %s\n", msg);
 
-        if(send(fd, msg, (strlen(msg)), 0) == strlen(msg))
-            printf("Sent!\n");
-        fflush(stdout);
+        if(send(fd, msg, (strlen(msg)), 0) == strlen(msg)){
+            cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+            cse4589_print_and_log("[%s:END]\n", cmd);
+        }
+//            printf("Sent!\n");
+        else{
+            cse4589_print_and_log("[%s:ERROR]\n", cmd);
+            cse4589_print_and_log("[%s:END]\n", cmd);
+        }
+//        fflush(stdout);
         free(msg);
     }
     else if(strcmp(cmd, "PORT") == 0){
-        printf("PORT:%d\n", local_port);
+        cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+        cse4589_print_and_log("PORT:%d\n", local_port);
+        cse4589_print_and_log("[%s:END]\n", cmd);
+    }
+    else if(strcmp(cmd, EXIT) == 0){
+        cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+        printf("EXIT cmd recieved\n");
+        cse4589_print_and_log("[%s:END]\n", cmd);
+        if(LOGIN == false){
+                send(fd, LOGOUT, (strlen(LOGOUT)), 0);
+                send(fd, EXIT, (strlen(EXIT)), 0);
+                usleep(100);
+                LOGIN = false;
+                exit(0);
+        }
+        else{
+                send(fd, EXIT, (strlen(EXIT)), 0);
+                LOGIN = false;
+                exit(0);
+        }
+    }
+    else if(strcmp(cmd, "") == 0){
+        // This handles empty cmd, do nothing and no error
+        printf("\n");
     }
     else{
+        cse4589_print_and_log("[%s:ERROR]\n", cmd);
         printf("Invalid command!\n");
+        cse4589_print_and_log("[%s:END]\n", cmd);
     }
 }
