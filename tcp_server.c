@@ -21,6 +21,7 @@
  * This file contains the server init and main while loop for tha application.
  * Uses the select() API to multiplex between network I/O and STDIN.
  */
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
