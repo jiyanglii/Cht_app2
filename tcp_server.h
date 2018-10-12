@@ -41,7 +41,7 @@ int new_client(int fd, struct sockaddr*);
 void *get_in_addr(struct sockaddr *sa);
 
 struct s_cmd;
-void processCMD(struct s_cmd * parse_cmd);
+void processCMD(struct s_cmd * parse_cmd, int src_ip);
 void GetPrimaryIP(char *cmd);
 
 int find_client_by_ip(char * ip);

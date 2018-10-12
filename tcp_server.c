@@ -26,6 +26,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <strings.h>
@@ -125,7 +126,7 @@ int tcp_server(int s_PORT){
 
                         // process command
                         cmdTokenizer(cmd, &input_cmd);
-                        processCMD(&input_cmd);
+                        processCMD(&input_cmd,0);
 
                         //Process PA1 commands here ...
                         bzero(&input_cmd, sizeof(struct s_cmd));
@@ -154,8 +155,9 @@ int tcp_server(int s_PORT){
                     /* Read from existing clients */
                     else{
                         printf("\nLine %d: sock_index: %d\n", __LINE__, sock_index);
+
                         /* Initialize buffer to receieve response */
-                        char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
+                        char *buffer= (char*) malloc(sizeof(char)*BUFFER_SIZE);
                         memset(buffer, '\0', BUFFER_SIZE);
 
                         if(recv(sock_index, buffer, BUFFER_SIZE, 0) < 0){
@@ -172,8 +174,12 @@ int tcp_server(int s_PORT){
 
                             printf("\nClient sent me: %s\n", buffer);
 
-                            cmdTokenizer(buffer, &input_cmd);
-                            processCMD(&input_cmd);
+                            int src_ip;
+                                src_ip = client_addr.sin_addr.s_addr;
+                                printf("\nClient send ip_address is: %d\n", src_ip);
+
+                                cmdTokenizer(buffer, &input_cmd);
+                                processCMD(&input_cmd,src_ip);
 
                             //Process PA1 commands here ...
                             bzero(&input_cmd, sizeof(struct s_cmd));
@@ -394,6 +400,84 @@ int new_client(int new_fd, struct sockaddr * client_sock){
     return 0;
 }
 
+void broadcast(char * buffer) {
+    for(int i = 0; i < MAX_CLIENT; i++) {
+        if(client_list[i].fd != 0) {
+           if(client_list[i].fd != sock_index) {
+                 send(client_list[i].fd, buffer, (strlen(buffer)),0);
+           }
+           printf("BROADCAST DONE!\n");
+        }
+        else {
+            //printf("BROADCAST ERROR!\n");
+            break;
+        }
+    }
+}
+
+void refresh() {
+    char *msg      = (char*) malloc(sizeof(char)*MSG_SIZE);
+//    char info[255] = "the ip is:";
+
+    for(int i = 0; i < MAX_CLIENT; i++) {
+        if((client_list[i].fd == sock_index)&&(client_list[i].fd == sock_index)) {
+           for(int j = 0; j < MAX_CLIENT; j++) {
+                   strcat(msg,"the ip is:");
+                   strcat(msg,"client_list[i].ip");
+                   strcat(msg,"the ip port is:");
+                   strcat(msg,"client_list[i].port_num");
+               if(client_list[j].fd != 0) {
+                  send(client_list[i].fd, msg, (strlen(msg)),0);
+               }
+           }
+           printf("REFRESH DONE!\n");
+        }
+        else {
+            break;
+        }
+    }
+}
+
+void sort(int arr_a[], uint32_t arr_b[], int len) {
+   int      tmp;
+   uint32_t tmp_c;
+   for(int i = 0; i < len -1; i++) {
+       for(int j =0; j < len -1 -i; j++) {
+           if(arr_a[j] > arr_a[j + 1]) {
+              tmp        = arr_a[j];
+              arr_a[j]   = arr_a[j +1];
+              arr_a[j+1] = tmp;
+
+              tmp_c      = arr_b[j];
+              arr_b[j]   = arr_b[j +1];
+              arr_b[j+1] = tmp_c;
+           }
+       }
+   }
+}
+
+void list() {
+    int       arr_a[MAX_CLIENT-1];
+    uint32_t  arr_b[MAX_CLIENT-1];
+    int       arr_c[MAX_CLIENT-1];
+    int count = 0;
+    for(int i = 0; i < MAX_CLIENT; i++) {
+        if(client_list[i].fd != 0) {
+           arr_a[i] = client_list[i].port_num;
+           arr_b[i] = client_list[i].ip;
+           arr_c[i] = i;
+           count++;
+        }
+        else{
+            sort(arr_a,arr_b,count);
+            for(int k = 0; k < count; k++) {
+               printf("num_sequence:%d, ip_addr:%04x, ip_port:%d\n",k,arr_b[k],arr_a[k]);
+            }
+            break;
+        }
+    }
+}
+
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
 {
@@ -403,9 +487,9 @@ void *get_in_addr(struct sockaddr *sa)
     return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
 
-void processCMD(struct s_cmd * parse_cmd){
-    char *cmd = parse_cmd->cmd;
-
+void processCMD(struct s_cmd * parse_cmd, int src_ip){
+    char *cmd    = parse_cmd->cmd;
+    char *buffer = parse_cmd->arg0;
 
     if(strcmp(cmd, "IP") == 0){
         GetPrimaryIP(cmd); // call ip();
@@ -437,6 +521,17 @@ void processCMD(struct s_cmd * parse_cmd){
         logout();
         // Remove client from client list
         remove_client_by_fd(sock_index);
+    }
+    else if (strcmp(cmd, "LIST") == 0){
+        // Validate destination IP and
+        list();
+    }
+    else if (strcmp(cmd, "BROADCAST") == 0){
+        broadcast(buffer);
+    }
+    else if (strcmp(cmd, "REFRESH") == 0){
+        printf("refresh step 0\n");
+        refresh();
     }
     else{
         printf("Invalid command!\n");

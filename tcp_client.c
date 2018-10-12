@@ -28,6 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #include <strings.h>
 #include <string.h>
 #include <arpa/inet.h>
@@ -88,7 +89,6 @@ int tcp_client(int c_PORT){
             for(sock_index=0; sock_index<=head_socket; sock_index++){
 
                 if(FD_ISSET(sock_index, &watch_list)){
-
 
                     /* Check if new command on STDIN */
                     if (sock_index == STDIN){
@@ -272,8 +272,11 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
                 }
         }
     }
-    else if((strcmp(cmd, "SEND") == 0) && (parse_cmd->arg_num >= 2)){ // For cmds with args, check arg number before accessing it to ensure security
-//        printf("SEND cmd revieved\n");
+    else if(((strcmp(cmd, "SEND") == 0) && (parse_cmd->arg_num >= 2))
+          ||((strcmp(cmd, "BROADCAST") == 0) && (parse_cmd->arg_num >= 1))
+          ||((strcmp(cmd, "REFRESH") == 0) && (parse_cmd->arg_num >= 0))){
+      // For cmds with args, check arg number before accessing it to ensure security, add BROADCAST function
+        printf("SEND cmd revieved\n");
 
         char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
         memset(msg, '\0', MSG_SIZE);
@@ -297,8 +300,8 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
     else if(strcmp(cmd, EXIT) == 0){
         printf("EXIT cmd recieved\n");
         if(LOGIN == false){
-                send(fd, LOGOUT, (strlen(LOGOUT)), 0) == strlen(LOGOUT);
-                send(fd, EXIT, (strlen(EXIT)), 0) == strlen(EXIT);
+                send(fd, LOGOUT, (strlen(LOGOUT)), 0);
+                send(fd, EXIT, (strlen(EXIT)), 0);
                 LOGIN = false;
                 exit(0);
         }
