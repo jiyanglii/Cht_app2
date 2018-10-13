@@ -24,7 +24,7 @@
 
 struct s_client{
     int client_id;
-    bool status;
+    short status;
     char host_name[35];
     uint32_t ip;
     char ip_str[INET6_ADDRSTRLEN];
