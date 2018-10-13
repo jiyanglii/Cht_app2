@@ -29,6 +29,7 @@ struct s_peers{
 int listening();
 int tcp_client(int c_PORT);
 int connect_to_host(char *server_ip, int server_port);
+int isValidIP(char * ip);
 
 struct s_cmd;
 void c_processCMD(struct s_cmd * parse_cmd, int fd);
