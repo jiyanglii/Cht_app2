@@ -111,7 +111,7 @@ int tcp_client(int c_PORT){
                     /* Read from existing server */
                     else if((sock_index == server) && (server != 0))
                     {
-                        printf("\nLine %d: sock_index: %d\n", __LINE__, sock_index);
+                        //printf("\nLine %d: sock_index: %d\n", __LINE__, sock_index);
 
                         /* Initialize buffer to receieve response */
                         char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
@@ -119,7 +119,7 @@ int tcp_client(int c_PORT){
 
                         if(recv(sock_index, buffer, BUFFER_SIZE, 0) <= 0){
                             close(sock_index);
-                            printf("Remote Host terminated connection!\n");
+                            //printf("Remote Host terminated connection!\n");
 
                             /* Remove from watched list */
                             FD_CLR(sock_index, &master_list);
@@ -259,7 +259,6 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
         }
     }
     else if(strcmp(cmd, "LOGOUT") == 0){
-//        printf("LOGOUT cmd recieved\n");
         if(LOGIN == false){
             cse4589_print_and_log("[%s:ERROR]\n", cmd);
             printf("Client not logged in, please log in first!\n");
@@ -272,10 +271,9 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
         }
     }
     else if(((strcmp(cmd, "SEND") == 0) && (parse_cmd->arg_num >= 2))
-          ||((strcmp(cmd, "BROADCAST") == 0) && (parse_cmd->arg_num >= 1))
-          ||((strcmp(cmd, "REFRESH") == 0) && (parse_cmd->arg_num >= 0))){
-      // For cmds with args, check arg number before accessing it to ensure security, add BROADCAST function
-        printf("SEND cmd revieved\n");
+            ||((strcmp(cmd, "BROADCAST") == 0) && (parse_cmd->arg_num >= 1))
+            ||((strcmp(cmd, "REFRESH") == 0) && (parse_cmd->arg_num >= 0))){
+        // For cmds with args, check arg number before accessing it to ensure security, add BROADCAST function
 
         char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
         memset(msg, '\0', MSG_SIZE);
@@ -295,9 +293,9 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
     else if(strcmp(cmd, "PORT") == 0){
         cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
         cse4589_print_and_log("PORT:%d\n", local_port);
+        cse4589_print_and_log("[%s:END]\n", cmd);
     }
     else if(strcmp(cmd, EXIT) == 0){
-        printf("EXIT cmd recieved\n");
         if(LOGIN == false){
                 send(fd, LOGOUT, (strlen(LOGOUT)), 0);
                 send(fd, EXIT, (strlen(EXIT)), 0);
@@ -314,6 +312,22 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
     else if(strcmp(cmd, "") == 0){
         // This handles empty cmd, do nothing and no error
         printf("\n");
+    }
+    else if(((strcmp(cmd, "BLOCK") == 0) && (parse_cmd->arg_num == 1)) ||
+        ((strcmp(cmd, "UNBLOCK") == 0) && (parse_cmd->arg_num == 1))){
+        char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
+        memset(msg, '\0', MSG_SIZE);
+        msg = concatCMD(msg, parse_cmd);
+
+        if(send(fd, msg, (strlen(msg)), 0) == strlen(msg)){
+            cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+            cse4589_print_and_log("[%s:END]\n", cmd);
+        }
+        else{
+            cse4589_print_and_log("[%s:ERROR]\n", cmd);
+            cse4589_print_and_log("[%s:END]\n", cmd);
+        }
+        free(msg);
     }
     else{
         cse4589_print_and_log("[%s:ERROR]\n", cmd);
