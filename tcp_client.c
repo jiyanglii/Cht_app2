@@ -109,7 +109,7 @@ int tcp_client(int c_PORT){
                             INIT_LOGIN = true;
                         }
                         else {
-                            printf("\nServer sent me: %s\n", buffer);
+                            //printf("\nServer sent me: %s\n", buffer);
 
                             // process command
                             cmdTokenizer(buffer, &input_cmd);
@@ -155,11 +155,11 @@ int connect_to_host(char *server_ip, int server_port)
     inet_pton(AF_INET, server_ip, &remote_server_addr.sin_addr); //Convert IP addresses from human-readable to binary
     remote_server_addr.sin_port = htons(server_port);
 
-    if(connect(fdsocket, (struct sockaddr*)&remote_server_addr, sizeof(remote_server_addr)) < 0)
+    if(connect(fdsocket, (struct sockaddr*)&remote_server_addr, sizeof(remote_server_addr)) < 0){
+        close(fdsocket);
+        fdsocket = -1;
         perror("Connect failed");
-
-    getsockname(fdsocket, (struct sockaddr*)&remote_server_addr, (socklen_t *)sizeof(struct sockaddr_in));
-//    printf("Client: local port %08d\n", htons(remote_server_addr.sin_port));
+    }
 
     return fdsocket;
 }
@@ -408,11 +408,12 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
 
             if(server < 0){
                 cse4589_print_and_log("[%s:ERROR]\n", cmd);
-                perror("Cannot create socket");
                 cse4589_print_and_log("[%s:END]\n", cmd);
+                //perror("Cannot create socket");
             }
             else{
                 cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+                cse4589_print_and_log("[%s:END]\n", cmd);
                 /* Register the listening socket */
                 FD_SET(server, &master_list);
                 if(server > head_socket) head_socket = server;
@@ -423,8 +424,8 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
         }
         else if(LOGIN == true){
             cse4589_print_and_log("[%s:ERROR]\n", cmd);
-            printf("Client already logged in, please log out first!\n");
             cse4589_print_and_log("[%s:END]\n", cmd);
+            //printf("Client already logged in, please log out first!\n");
         }
         else if(LOGIN == false){
             // Re log in after logged out
@@ -446,13 +447,14 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
     else if(strcmp(cmd, "LOGOUT") == 0){
         if(LOGIN == false){
             cse4589_print_and_log("[%s:ERROR]\n", cmd);
-            printf("Client not logged in, please log in first!\n");
             cse4589_print_and_log("[%s:END]\n", cmd);
+            //printf("Client not logged in, please log in first!\n");
         }
         
         else{
                 if(send(fd, LOGOUT, (strlen(LOGOUT)), 0) == strlen(LOGOUT)){
                     cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+                    cse4589_print_and_log("[%s:END]\n", cmd);
                     LOGIN = false;
                     cse4589_print_and_log("[%s:END]\n", cmd);
                 }
@@ -471,9 +473,9 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
         msg = concatCMD(msg, parse_cmd);
 //        printf("ConcatCMD %s\n", msg);
 
-        if(send(fd, msg, (strlen(msg)), 0) == strlen(msg))
-//            printf("Sent!\n");
+        if(send(fd, msg, (strlen(msg)), 0) == strlen(msg)){
             cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+        }
         else{
             cse4589_print_and_log("[%s:ERROR]\n", cmd);
         }
