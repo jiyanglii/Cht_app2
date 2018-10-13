@@ -664,9 +664,9 @@ void processCMD(struct s_cmd * parse_cmd){
         broadcast(parse_cmd);
     }
     else if (strcmp(cmd, "REFRESH") == 0){
-        cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+//        cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
         refresh(sock_index);
-        cse4589_print_and_log("[%s:END]\n", cmd);
+//        cse4589_print_and_log("[%s:END]\n", cmd);
     }
     else if (strcmp(cmd, "STATISTICS") == 0){
         cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
