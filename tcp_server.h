@@ -4,6 +4,7 @@
 #ifndef TRUE
 #define TRUE        true
 #endif
+#include <stdbool.h>
 
 #define BACKLOG     5
 #define STDIN       0
