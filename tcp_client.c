@@ -419,7 +419,7 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
                 if(server > head_socket) head_socket = server;
                 LOGIN = true;
                 INIT_LOGIN = false;
-                cse4589_print_and_log("[%s:END]\n", cmd);
+//                cse4589_print_and_log("[%s:END]\n", cmd);
             }
         }
         else if(LOGIN == true){
