@@ -148,7 +148,7 @@ int connect_to_host(char *server_ip, int server_port)
     if(bind(fdsocket, (struct sockaddr *)&remote_server_addr, (socklen_t)sizeof(remote_server_addr)) < 0 )
         perror("Bind failed");
 
-//    printf("Client: local port %08d\n", local_port);
+    //printf("Client: local port %08d\n", local_port);
 
     bzero(&remote_server_addr, sizeof(remote_server_addr));
     remote_server_addr.sin_family = AF_INET;

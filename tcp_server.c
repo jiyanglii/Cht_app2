@@ -210,9 +210,6 @@ int forward(){
         id_src = find_client_by_fd(sock_index);
         client_list[id_src].msg_sent++;
 
-        if(check_block(id_src, id_dst))
-            return 1;
-
         memcpy(&dest_ip_str[0],client_list[id_src].ip_str,sizeof(dest_ip_str));
 
         input_cmd.arg0 = &dest_ip_str[0];
@@ -229,6 +226,9 @@ int forward(){
                 cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", client_list[id_src].ip_str, client_list[id_dst].ip_str, token);
             else
                 cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", client_list[id_src].ip_str, client_list[id_dst].ip_str, input_cmd.arg1);
+
+            if(check_block(id_src, id_dst))
+                return 1;
 
             if(send(client_list[id_dst].fd, msg, (strlen(msg)), 0) == strlen(msg))
                 //printf("Sent!\n");
@@ -485,6 +485,7 @@ void statistics(){
 void broadcast(struct s_cmd * cmd) {
     int scr_id = find_client_by_fd(sock_index);
     char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
+    char *token;
 
     memset(msg, '\0', sizeof(char)*MSG_SIZE);
 
@@ -498,11 +499,23 @@ void broadcast(struct s_cmd * cmd) {
 
     for(int i = 0; i < MAX_CLIENT; i++) {
         if((client_list[i].fd != 0) && (client_list[i].fd != sock_index) && !check_block(scr_id, i)) {
+            cse4589_print_and_log("[%s:SUCCESS]\n", "RELAYED");
+
+            if(cmd->arg_num >= 2){
+                cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s %s\n", "255.255.255.255", client_list[i].ip_str, cmd->arg0, cmd->arg1);
+            }
+            else{
+                cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", "255.255.255.255", client_list[i].ip_str, cmd->arg0);
+            }
+
             send(client_list[i].fd, msg, (strlen(msg)),0);
+
+            cse4589_print_and_log("[%s:END]\n", "RELAYED");
         }
         else if(client_list[i].fd == 0){
             break;
         }
+        token = NULL;
     }
     free(msg);
 }
@@ -617,7 +630,7 @@ void processCMD(struct s_cmd * parse_cmd){
         // Validate destination IP and
         cse4589_print_and_log("[%s:SUCCESS]\n", "RELAYED");
         if(forward())
-            printf("Message forwarding failed\n");
+            //printf("Message forwarding failed\n");
         cse4589_print_and_log("[%s:END]\n", "RELAYED");
     }
     else if (strcmp(cmd, EXIT) == 0){
@@ -648,9 +661,7 @@ void processCMD(struct s_cmd * parse_cmd){
 
     }
     else if (strcmp(cmd, "BROADCAST") == 0){
-        cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
         broadcast(parse_cmd);
-        cse4589_print_and_log("[%s:END]\n", cmd);
     }
     else if (strcmp(cmd, "REFRESH") == 0){
         cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
