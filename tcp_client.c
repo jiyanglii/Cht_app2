@@ -126,7 +126,7 @@ int tcp_client(int c_PORT){
                             INIT_LOGIN = true;
                         }
                         else {
-                            printf("\nServer sent me: %s\n", buffer);
+                            printf("%s\n", buffer);
                             fflush(stdout);
                         }
 
@@ -215,7 +215,7 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
       GetPrimaryIP(cmd); // call ip();
     }
     else if(strcmp(cmd, "AUTHOR") == 0){
-      const char* your_ubit_name = "jiyangli and yincheng";
+      const char* your_ubit_name = "jiyangli";
       cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
       cse4589_print_and_log("I,%s,have read and understood the course academic integrity policy.\n",your_ubit_name);
       cse4589_print_and_log("[%s:END]\n", cmd);
