@@ -509,7 +509,9 @@ void broadcast(struct s_cmd * cmd) {
 
 void refresh(int fd){
     char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
+    memset(msg, '\0', sizeof(char)*MSG_SIZE);
     char *buffer = (char*) malloc(sizeof(char)*MSG_SIZE);
+    memset(buffer, '\0',sizeof(char)*MSG_SIZE);
 
     strcat(msg, "REFRESH ");
 
