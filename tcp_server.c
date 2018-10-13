@@ -194,6 +194,7 @@ int check_block(int src_id, int dst_id){
 int forward(){
 
     int id_dst, id_src  = -1;
+    char * token;
     char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
     memset(msg, '\0', MSG_SIZE);
 
@@ -221,7 +222,12 @@ int forward(){
 
             client_list[id_dst].msg_rev++;
             // When logged in, directly forward msg, find out incoming client by its FD
-            cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", client_list[id_src].ip_str, client_list[id_dst].ip_str, input_cmd.arg1);
+
+            token = strtok(input_cmd.arg1,"\n");
+            if(token)
+                cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", client_list[id_src].ip_str, client_list[id_dst].ip_str, token);
+            else
+                cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", client_list[id_src].ip_str, client_list[id_dst].ip_str, input_cmd.arg1);
 
             if(send(client_list[id_dst].fd, msg, (strlen(msg)), 0) == strlen(msg))
                 //printf("Sent!\n");
@@ -503,6 +509,9 @@ void broadcast(struct s_cmd * cmd) {
 void refresh(int fd){
     char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
     char *buffer = (char*) malloc(sizeof(char)*MSG_SIZE);
+
+    memset(msg, '\0', sizeof(char)*MSG_SIZE);
+    memset(buffer, '\0', sizeof(char)*MSG_SIZE);
 
     strcat(msg, "REFRESH ");
 

@@ -297,29 +297,47 @@ void update_user_list(struct s_cmd * parse_cmd){
     free(msg);
 }
 
-void file_transfer(struct s_cmd * parse_cmd){
+int getUserPort(char * ip){
+    for(int i=0; i<MAX_CLIENT; i++){
+        if(strcmp(users[i].ip_str, ip) == 0){
+            return users[i].port_num;
+        }
+        else if(users[i].port_num == 0)
+            break;
+    }
+    return 0;
+}
 
-    char *buf = (char*) malloc(sizeof(char)*MSG_SIZE);
-    memset(buf, '\0', sizeof(char)*MSG_SIZE);
+void file_transfer(struct s_cmd * parse_cmd, int fd){
+
+    char *buf = (char*) malloc(sizeof(char)*(MSG_SIZE-30));
+    char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
+    memset(buf, '\0', sizeof(char)*(MSG_SIZE-30));
+    memset(msg, '\0', sizeof(char)*MSG_SIZE);
     FILE *fp;
     size_t read_s = 0;
-
-    printf("%s\n", parse_cmd->arg1);
 
     fp = fopen(trimwhitespace(parse_cmd->arg1), "r");
 
     if (fp) {
         printf("File opened\n");
         while ((read_s = fread(buf, 1, sizeof buf, fp)) > 0){
-            fwrite(buf, 1, read_s, stdout);
+            memset(msg, '\0', sizeof(char)*MSG_SIZE);
+
+            strcat(msg, "SENDFILE ");
+            strcat(msg, trimwhitespace(parse_cmd->arg0));
+            strcat(msg, " ");
+            strcat(msg, buf);
+            send(fd, msg, (strlen(msg)), 0);
+            memset(buf, '\0', sizeof(char)*(MSG_SIZE-30));
         }
         if (ferror(fp)) {
             /* deal with error */}
     }
 
-    fprintf(fp, "This is testing for fprintf...\n");
     fclose(fp);
     free(buf);
+    free(msg);
 }
 
 void c_processCMD_rev(struct s_cmd * parse_cmd, int fd){
@@ -509,7 +527,7 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
             return;
         }
 
-        file_transfer(parse_cmd);
+        file_transfer(parse_cmd, fd);
     }
     else{
         cse4589_print_and_log("[%s:ERROR]\n", cmd);
