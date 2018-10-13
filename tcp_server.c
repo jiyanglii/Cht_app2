@@ -513,9 +513,6 @@ void refresh(int fd){
     char *buffer = (char*) malloc(sizeof(char)*MSG_SIZE);
     memset(buffer, '\0',sizeof(char)*MSG_SIZE);
 
-    memset(msg, '\0', sizeof(char)*MSG_SIZE);
-    memset(buffer, '\0', sizeof(char)*MSG_SIZE);
-
     strcat(msg, "REFRESH ");
 
     for(int i = 0; i<MAX_CLIENT; i++){
