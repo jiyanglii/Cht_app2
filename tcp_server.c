@@ -624,6 +624,8 @@ void processCMD(struct s_cmd * parse_cmd){
         // Here handles when a client already in the list, but logged out, re log in here
         // New client case is handles elsewhere
         login();
+        usleep(20);
+        fflush(stdout);
         refresh(sock_index);
     }
     else if (strcmp(cmd, "SEND") == 0){
