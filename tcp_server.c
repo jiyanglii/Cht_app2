@@ -181,7 +181,7 @@ int tcp_server(int s_PORT){
 int check_block(int src_id, int dst_id){
     int blocked = 0;
     for(int i = 0; i<MAX_CLIENT; i++){
-        if(client_list[dst_id].block_by[i] == client_list[src_id].fd){
+        if(client_list[src_id].block_by[i] == client_list[dst_id].fd){
             //printf("The destination has BLOCKED the src\n");
             blocked = 1;
             break;
@@ -484,6 +484,7 @@ void statistics(){
 }
 
 void broadcast(struct s_cmd * cmd) {
+    cse4589_print_and_log("[%s:SUCCESS]\n", "RELAYED");
     int scr_id = find_client_by_fd(sock_index);
     char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
     char *token;
@@ -498,20 +499,18 @@ void broadcast(struct s_cmd * cmd) {
         strcat(msg, cmd->arg1);
     }
 
+        if(cmd->arg_num >= 2){
+            cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s %s\n", client_list[scr_id].ip_str, "255.255.255.255", cmd->arg0, cmd->arg1);
+        }
+        else{
+            cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", client_list[scr_id].ip_str, "255.255.255.255", cmd->arg0);
+        }
+
     for(int i = 0; i < MAX_CLIENT; i++) {
         if((client_list[i].fd != 0) && (client_list[i].fd != sock_index) && !check_block(scr_id, i)) {
-            cse4589_print_and_log("[%s:SUCCESS]\n", "RELAYED");
-
-            if(cmd->arg_num >= 2){
-                cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s %s\n", "255.255.255.255", client_list[i].ip_str, cmd->arg0, cmd->arg1);
-            }
-            else{
-                cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", "255.255.255.255", client_list[i].ip_str, cmd->arg0);
-            }
 
             send(client_list[i].fd, msg, (strlen(msg)),0);
 
-            cse4589_print_and_log("[%s:END]\n", "RELAYED");
         }
         else if(client_list[i].fd == 0){
             break;
@@ -519,6 +518,7 @@ void broadcast(struct s_cmd * cmd) {
         token = NULL;
     }
     free(msg);
+    cse4589_print_and_log("[%s:END]\n", "RELAYED");
 }
 
 void refresh(int fd){
@@ -664,9 +664,9 @@ void processCMD(struct s_cmd * parse_cmd){
         broadcast(parse_cmd);
     }
     else if (strcmp(cmd, "REFRESH") == 0){
-        cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+        //cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
         refresh(sock_index);
-        cse4589_print_and_log("[%s:END]\n", cmd);
+        //cse4589_print_and_log("[%s:END]\n", cmd);
     }
     else if (strcmp(cmd, "STATISTICS") == 0){
         cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
