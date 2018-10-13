@@ -488,7 +488,9 @@ void broadcast(struct s_cmd * cmd) {
     char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
 
     memset(msg, '\0', sizeof(char)*MSG_SIZE);
-    memcpy(msg, cmd->arg0, strlen(cmd->arg0));
+
+    strcat(msg, "BROADCAST ");
+    strcat(msg, cmd->arg0);
 
     if(cmd->arg_num >= 2){
         strcat(msg, " ");
@@ -499,7 +501,7 @@ void broadcast(struct s_cmd * cmd) {
         if((client_list[i].fd != 0) && (client_list[i].fd != sock_index) && !check_block(scr_id, i)) {
             send(client_list[i].fd, msg, (strlen(msg)),0);
         }
-        else {
+        else if(client_list[i].fd == 0){
             break;
         }
     }

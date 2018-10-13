@@ -343,6 +343,8 @@ void file_transfer(struct s_cmd * parse_cmd, int fd){
 void c_processCMD_rev(struct s_cmd * parse_cmd, int fd){
     char *cmd = parse_cmd->cmd;
     char *token;
+    char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
+    memset(msg, '\0', sizeof(char)*MSG_SIZE);
 
     if((strcmp(cmd, "SEND") == 0) && (parse_cmd->arg_num >= 2)){
         token = strtok(parse_cmd->arg1,"\n");
@@ -353,10 +355,26 @@ void c_processCMD_rev(struct s_cmd * parse_cmd, int fd){
             cse4589_print_and_log("msg from:%s\n[msg]:%s\n", parse_cmd->arg0, parse_cmd->arg1);
         cse4589_print_and_log("[%s:END]\n", "RECEIVED");
     }
+    if((strcmp(cmd, "BROADCAST") == 0) && (parse_cmd->arg_num >= 1)){
+
+        strcat(msg, parse_cmd->arg0);
+        if(parse_cmd->arg_num >= 2){
+            strcat(msg, " ");
+            strcat(msg, parse_cmd->arg1);
+        }
+
+        token = strtok(msg,"\n");
+        cse4589_print_and_log("[%s:SUCCESS]\n", "RECEIVED");
+        if(token)
+            cse4589_print_and_log("msg from:%s\n[msg]:%s\n", "255.255.255.255", token);
+        else
+            cse4589_print_and_log("msg from:%s\n[msg]:%s\n", "255.255.255.255", msg);
+        cse4589_print_and_log("[%s:END]\n", "RECEIVED");
+    }
     else if(strcmp(cmd, "REFRESH") == 0){
         update_user_list(parse_cmd);
     }
-
+    free(msg);
 }
 
 
