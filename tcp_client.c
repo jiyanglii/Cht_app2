@@ -297,12 +297,42 @@ void update_user_list(struct s_cmd * parse_cmd){
     free(msg);
 }
 
+void file_transfer(struct s_cmd * parse_cmd){
+
+    char *buf = (char*) malloc(sizeof(char)*MSG_SIZE);
+    memset(buf, '\0', sizeof(char)*MSG_SIZE);
+    FILE *fp;
+    size_t read_s = 0;
+
+    printf("%s\n", parse_cmd->arg1);
+
+    fp = fopen(trimwhitespace(parse_cmd->arg1), "r");
+
+    if (fp) {
+        printf("File opened\n");
+        while ((read_s = fread(buf, 1, sizeof buf, fp)) > 0){
+            fwrite(buf, 1, read_s, stdout);
+        }
+        if (ferror(fp)) {
+            /* deal with error */}
+    }
+
+    fprintf(fp, "This is testing for fprintf...\n");
+    fclose(fp);
+    free(buf);
+}
+
 void c_processCMD_rev(struct s_cmd * parse_cmd, int fd){
     char *cmd = parse_cmd->cmd;
+    char *token;
 
     if((strcmp(cmd, "SEND") == 0) && (parse_cmd->arg_num >= 2)){
+        token = strtok(parse_cmd->arg1,"\n");
         cse4589_print_and_log("[%s:SUCCESS]\n", "RECEIVED");
-        cse4589_print_and_log("msg from:%s\n[msg]:%s\n", parse_cmd->arg0, parse_cmd->arg1);
+        if(token)
+            cse4589_print_and_log("msg from:%s\n[msg]:%s\n", parse_cmd->arg0, token);
+        else
+            cse4589_print_and_log("msg from:%s\n[msg]:%s\n", parse_cmd->arg0, parse_cmd->arg1);
         cse4589_print_and_log("[%s:END]\n", "RECEIVED");
     }
     else if(strcmp(cmd, "REFRESH") == 0){
@@ -479,11 +509,7 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
             return;
         }
 
-        FILE *fp;
-
-        fp = fopen(parse_cmd->arg1, "r");
-        fprintf(fp, "This is testing for fprintf...\n");
-        fclose(fp);
+        file_transfer(parse_cmd);
     }
     else{
         cse4589_print_and_log("[%s:ERROR]\n", cmd);
