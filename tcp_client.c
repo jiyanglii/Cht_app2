@@ -1,24 +1,5 @@
 /**
- * @client
- * @author  Swetank Kumar Saha <swetankk@buffalo.edu>
- * @version 1.0
- *
- * @section LICENSE
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details at
- * http://www.gnu.org/copyleft/gpl.html
- *
- * @section DESCRIPTION
- *
- * This file contains the client.
+
  */
 
 #include <stdbool.h>
@@ -40,6 +21,8 @@
 #else
 #define cse4589_print_and_log printf
 #endif
+
+static struct s_peers users[MAX_CLIENT] = {0};
 
 static struct s_cmd input_cmd;
 static uint8_t LOGIN_CMD = false; // This varible sets when recives a LOGIN cmd
@@ -126,7 +109,15 @@ int tcp_client(int c_PORT){
                             INIT_LOGIN = true;
                         }
                         else {
-                            printf("%s\n", buffer);
+                            printf("\nServer sent me: %s\n", buffer);
+
+                            // process command
+                            cmdTokenizer(buffer, &input_cmd);
+                            c_processCMD_rev(&input_cmd, sock_index);
+
+                            //Process PA1 commands here ...
+                            bzero(&input_cmd, sizeof(struct s_cmd));
+
                             fflush(stdout);
                         }
 
@@ -173,6 +164,44 @@ int connect_to_host(char *server_ip, int server_port)
     return fdsocket;
 }
 
+int isValidIP(char * ip){
+
+    char * token;
+    char *_ip = (char*) malloc(sizeof(ip)*3);
+    memcpy(_ip, ip, strlen(ip));
+
+    struct sockaddr_in sa;
+    int result = inet_pton(AF_INET, ip, &(sa.sin_addr));
+
+    if(result){
+        token = strtok(_ip,".");
+
+        if(strcmp(token, "127") == 0){
+            result = 0;
+        }
+    }
+    free(_ip);
+    return result;
+}
+
+int isValidPort(int port){
+    if(port == 1087)
+        return 0;
+    else
+        return 1;
+}
+
+int isLoggedinUser(char * ip){
+    for(int i=0; i<MAX_CLIENT; i++){
+        if(strcmp(users[i].ip_str, ip) == 0){
+            return 1;
+        }
+        else if(users[i].port_num == 0)
+            break;
+    }
+    return 0;
+}
+
 void GetPrimaryIP(char *cmd) {
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
     if(sock <0) {
@@ -208,6 +237,80 @@ void GetPrimaryIP(char *cmd) {
     }
 }
 
+void c_list(){
+    for(int i=0; i<MAX_CLIENT; i++){
+        if(users[i].id != 0){
+            cse4589_print_and_log("%-5d%-35s%-20s%-8d\n", users[i].id, users[i].host_name, users[i].ip_str, users[i].port_num);
+        }
+        else{
+            break;
+        }
+    }
+}
+
+void update_user_list(struct s_cmd * parse_cmd){
+    int i = 0;
+    char * token;
+    char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
+    memset(msg, '\0', sizeof(char)*MSG_SIZE);
+
+    if(parse_cmd->arg_num == 0)
+        return;
+
+    strcat(msg, parse_cmd->arg0);
+    if(parse_cmd->arg_num >= 2){
+        strcat(msg, " ");
+        strcat(msg, parse_cmd->arg1);
+    }
+
+    token = strtok(msg, " ");
+
+    memset(&users[0], 0, sizeof(struct s_peers)*MAX_CLIENT);
+
+    while(token && (i < MAX_CLIENT)){
+
+        users[i].id = atoi(token);
+
+        token = (strtok(NULL, " "));
+        if(token)
+            strcpy(users[i].host_name, token);
+        else
+            break;
+
+        token = (strtok(NULL, " "));
+        if(token)
+            strcpy(users[i].ip_str, token);
+        else
+            break;
+
+        token = (strtok(NULL, " "));
+        if(token)
+            users[i].port_num = atoi(token);
+        else
+            break;
+
+        token = strtok(NULL, " ");
+        i++;
+    }
+
+    free(msg);
+}
+
+void c_processCMD_rev(struct s_cmd * parse_cmd, int fd){
+    char *cmd = parse_cmd->cmd;
+
+    if((strcmp(cmd, "SEND") == 0) && (parse_cmd->arg_num >= 2)){
+        cse4589_print_and_log("[%s:SUCCESS]\n", "RECEIVED");
+        cse4589_print_and_log("msg from:%s\n[msg]:%s\n", parse_cmd->arg0, parse_cmd->arg1);
+        cse4589_print_and_log("[%s:END]\n", "RECEIVED");
+    }
+    else if(strcmp(cmd, "REFRESH") == 0){
+        update_user_list(parse_cmd);
+    }
+
+}
+
+
 void c_processCMD(struct s_cmd * parse_cmd, int fd){
     char *cmd = parse_cmd->cmd;
 
@@ -220,8 +323,19 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
       cse4589_print_and_log("I,%s,have read and understood the course academic integrity policy.\n",your_ubit_name);
       cse4589_print_and_log("[%s:END]\n", cmd);
     }
+    else if (strcmp(cmd, "LIST") == 0){
+        // Validate destination IP and
+        cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+        c_list();
+        cse4589_print_and_log("[%s:END]\n", cmd);
+    }
     else if((strcmp(cmd, "LOGIN") == 0) && (parse_cmd->arg_num >= 2))
     {
+        if(!(isValidIP(parse_cmd->arg0) && isValidPort(atoi(parse_cmd->arg1)))){
+            cse4589_print_and_log("[%s:ERROR]\n", cmd);
+            cse4589_print_and_log("[%s:END]\n", cmd);
+            return;
+        }
         if(INIT_LOGIN){
             // This is ran by start up, first to establish connection to server
             server = connect_to_host(parse_cmd->arg0, atoi(parse_cmd->arg1));
@@ -278,8 +392,30 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
                 }
         }
     }
-    else if(((strcmp(cmd, "SEND") == 0) && (parse_cmd->arg_num >= 2))
-            ||((strcmp(cmd, "BROADCAST") == 0) && (parse_cmd->arg_num >= 1))
+    else if((strcmp(cmd, "SEND") == 0) && (parse_cmd->arg_num >= 2)){
+        if(!(isValidIP(parse_cmd->arg0) && isLoggedinUser(parse_cmd->arg0))){
+            cse4589_print_and_log("[%s:ERROR]\n", cmd);
+            cse4589_print_and_log("[%s:END]\n", cmd);
+            return;
+        }
+
+        char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
+        memset(msg, '\0', MSG_SIZE);
+
+        msg = concatCMD(msg, parse_cmd);
+//        printf("ConcatCMD %s\n", msg);
+
+        if(send(fd, msg, (strlen(msg)), 0) == strlen(msg))
+//            printf("Sent!\n");
+            cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+        else{
+            cse4589_print_and_log("[%s:ERROR]\n", cmd);
+        }
+        cse4589_print_and_log("[%s:END]\n", cmd);
+//        fflush(stdout);
+        free(msg);
+    }
+    else if(((strcmp(cmd, "BROADCAST") == 0) && (parse_cmd->arg_num >= 1))
             ||((strcmp(cmd, "REFRESH") == 0) && (parse_cmd->arg_num >= 0))){
         // For cmds with args, check arg number before accessing it to ensure security, add BROADCAST function
 
@@ -329,6 +465,12 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
     }
     else if(((strcmp(cmd, "BLOCK") == 0) && (parse_cmd->arg_num == 1)) ||
         ((strcmp(cmd, "UNBLOCK") == 0) && (parse_cmd->arg_num == 1))){
+        if(!isValidIP(parse_cmd->arg0)){
+            cse4589_print_and_log("[%s:ERROR]\n", cmd);
+            cse4589_print_and_log("[%s:END]\n", cmd);
+            return;
+        }
+
         char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
         memset(msg, '\0', MSG_SIZE);
         msg = concatCMD(msg, parse_cmd);
