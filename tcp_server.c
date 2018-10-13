@@ -197,6 +197,19 @@ int tcp_server(int s_PORT){
     return 0;
 }
 
+int check_block(int src_id, int dst_id){
+    int blocked = 0;
+    for(int i = 0; i<MAX_CLIENT; i++){
+        if(client_list[dst_id].block_by[i] == client_list[src_id].fd){
+            printf("The destination has BLOCKED the src\n");
+            blocked = 1;
+            break;
+        }
+    }
+
+    return blocked;
+}
+
 int forward(){
 
     int id_dst, id_src  = -1;
@@ -213,6 +226,9 @@ int forward(){
 
         id_src = find_client_by_fd(sock_index);
         client_list[id_src].msg_sent++;
+
+        if(check_block(id_src, id_dst))
+            return 1;
 
         memcpy(&dest_ip_str[0],client_list[id_src].ip_str,sizeof(dest_ip_str));
 
@@ -300,6 +316,46 @@ int logout(){
     else
         printf("Client not found!\n");
     return 0;
+}
+
+void block(char * ip){
+    printf("%s\n", ip);
+
+    int id_src  = -1;
+
+    id_src = find_client_by_ip(ip);
+
+    if(id_src != -1){
+        for(int i = 0; i<MAX_CLIENT; i++){
+            if(client_list[id_src].block_by[i] == 0){
+                client_list[id_src].block_by[i] = sock_index;
+                //printf("BLOCKED!\n");
+                break;
+            }
+        }
+
+    }
+    else
+        printf("Client not found!\n");
+}
+
+void unblock(char * ip){
+
+    int id_src  = -1;
+
+    id_src = find_client_by_ip(ip);
+
+    if(id_src != -1){
+        for(int i = 0; i<MAX_CLIENT; i++){
+            if(client_list[id_src].block_by[i] == sock_index){
+                client_list[id_src].block_by[i] = 0;
+                break;
+            }
+        }
+
+    }
+    else
+        printf("Client not found!\n");
 }
 
 int find_client_by_ip(char * ip){
@@ -401,6 +457,9 @@ int new_client(int new_fd, struct sockaddr * client_sock){
             client_list[i].msg_rev = 0;
             client_list[i].msg_sent = 0;
 
+            for(int j = 0; j < MAX_CLIENT; j++){
+                client_list[i].block_by[j] = 0;
+                }
             //printf("getpeername:%d\n", getpeername(new_fd, client_sock, (socklen_t *)sizeof(struct sockaddr)));
             //printf("gethostname:%d\n", gethostname(fd, &client_sock, sizeof(client_sock)));
 
@@ -648,6 +707,12 @@ void processCMD(struct s_cmd * parse_cmd){
         cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
         statistics();
         cse4589_print_and_log("[%s:END]\n", cmd);
+    }
+    else if (strcmp(cmd, "BLOCK") == 0){
+        block(trimwhitespace(parse_cmd->arg0));
+    }
+    else if (strcmp(cmd, "UNBLOCK") == 0){
+        unblock(trimwhitespace(parse_cmd->arg0));
     }
     else if(strcmp(cmd, "") == 0){
         // This handles empty cmd, do nothing and no error

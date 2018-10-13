@@ -35,6 +35,7 @@ struct s_client{
     int fd;
     struct sockaddr_in client_info;
     char *buffer[MAX_MSG_BUFFER];
+    int block_by[MAX_CLIENT];
 };
 
 int tcp_server(int s_PORT);
