@@ -4,9 +4,8 @@
 #define BACKLOG     5
 #define STDIN       0
 #define CMD_SIZE    100
-#define BUFFER_SIZE 256
-#define MSG_SIZE    256
-#define BUFFER_SIZE 256
+#define BUFFER_SIZE 512
+#define MSG_SIZE    512
 #define IP_SIZE     255
 #define LOGOUT      "LOGOUT"
 #define EXIT        "EXIT"
