@@ -485,6 +485,19 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
         }
         free(msg);
     }
+    else if(strcmp(cmd, "SENDFILE") == 0){
+        if(!(isValidIP(parse_cmd->arg0) && isLoggedinUser(parse_cmd->arg0))){
+            cse4589_print_and_log("[%s:ERROR]\n", cmd);
+            cse4589_print_and_log("[%s:END]\n", cmd);
+            return;
+        }
+
+        FILE *fp;
+
+        fp = fopen(parse_cmd->arg1, "r");
+        fprintf(fp, "This is testing for fprintf...\n");
+        fclose(fp);
+    }
     else{
         cse4589_print_and_log("[%s:ERROR]\n", cmd);
         printf("Invalid command!\n");

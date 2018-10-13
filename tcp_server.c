@@ -477,6 +477,7 @@ void statistics(){
 }
 
 void broadcast(struct s_cmd * cmd) {
+    int scr_id = find_client_by_fd(sock_index);
     char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
 
     memset(msg, '\0', sizeof(char)*MSG_SIZE);
@@ -488,7 +489,7 @@ void broadcast(struct s_cmd * cmd) {
     }
 
     for(int i = 0; i < MAX_CLIENT; i++) {
-        if((client_list[i].fd != 0) && (client_list[i].fd != sock_index)) {
+        if((client_list[i].fd != 0) && (client_list[i].fd != sock_index) && !check_block(scr_id, i)) {
             send(client_list[i].fd, msg, (strlen(msg)),0);
         }
         else {
