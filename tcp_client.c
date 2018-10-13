@@ -258,6 +258,10 @@ void update_user_list(struct s_cmd * parse_cmd){
     char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
     memset(msg, '\0', sizeof(char)*MSG_SIZE);
 
+    for(int i = 0; i<MAX_CLIENT; i++){
+        users[i].id = 0;
+    }
+
     if(parse_cmd->arg_num == 0)
         return;
 
@@ -268,8 +272,6 @@ void update_user_list(struct s_cmd * parse_cmd){
     }
 
     token = strtok(msg, " ");
-
-    memset(&users[0], 0, sizeof(struct s_peers)*MAX_CLIENT);
 
     while(token && (i < MAX_CLIENT)){
 
@@ -501,6 +503,7 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
         }
 //        fflush(stdout);
         free(msg);
+        cse4589_print_and_log("[%s:END]\n", cmd);
     }
     else if(strcmp(cmd, "PORT") == 0){
         cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
