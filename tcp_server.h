@@ -27,7 +27,7 @@ struct s_client{
     short status;
     char host_name[35];
     uint32_t ip;
-    char ip_str[INET6_ADDRSTRLEN];
+    char ip_str[INET_ADDRSTRLEN];
     int port_num;
     int msg_rev;
     int msg_sent;
@@ -37,10 +37,10 @@ struct s_client{
     int block_by[MAX_CLIENT];
 };
 
+void buffer_msg(int dst_idx, char * msg);
 int tcp_server(int s_PORT);
 int forward();
 void refresh(int fd);
-void buffer_msg(int dst_idx, char * msg);
 int logout();
 int new_client(int fd, struct sockaddr*);
 void *get_in_addr(struct sockaddr *sa);

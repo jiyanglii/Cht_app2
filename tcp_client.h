@@ -26,6 +26,11 @@ struct s_peers{
     int port_num;
 };
 
+struct s_block{
+    int valid;
+    char *ip;
+};
+
 int listening();
 int tcp_client(int c_PORT);
 int connect_to_host(char *server_ip, int server_port);

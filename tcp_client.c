@@ -35,6 +35,8 @@ static int head_socket = 0;
 
 static int local_port;
 
+static struct s_block block_list[MAX_CLIENT];
+
 int tcp_client(int c_PORT){
 
     int selret, sock_index;
@@ -345,6 +347,57 @@ void file_transfer(struct s_cmd * parse_cmd, int fd){
     free(msg);
 }
 
+int isBlocked(char * ip){
+    for (int i = 0; i < MAX_CLIENT; i++)
+    {
+        if(block_list[i].valid){
+            if(strcmp(block_list[i].ip, ip) == 0){
+                return 1;
+            }
+        }
+    }
+
+    return 0;
+}
+
+void c_block(char * ip){
+
+    if(!isBlocked(ip)){
+        for (int i = 0; i < MAX_CLIENT; i++)
+        {
+            if(!block_list[i].valid){
+                block_list[i].valid = 1;
+                block_list[i].ip = (char*) malloc(strlen(ip));
+                memcpy(block_list[i].ip, ip, strlen(ip));
+                break;
+            }
+        }
+    }
+}
+
+void c_unblock(char * ip){
+
+    if(!isBlocked(ip)){
+        for (int i = 0; i < MAX_CLIENT; i++)
+        {
+            if((!block_list[i].valid) && (strcmp(block_list[i].ip, ip) == 0)){
+                block_list[i].valid = 0;
+                free(block_list[i].ip);
+                ;
+            }
+        }
+    }
+
+    for (int i = 0; i < (MAX_CLIENT - 1); i++)
+    {
+        if((!block_list[i].valid) && (block_list[i+1].valid)){
+            block_list[i] = block_list[i+1];
+            block_list[i].valid = 0;
+            ;
+        }
+    }
+}
+
 void c_processCMD_rev(struct s_cmd * parse_cmd, int fd){
     char *cmd = parse_cmd->cmd;
     char *token;
@@ -458,7 +511,7 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
         memset(msg, '\0', MSG_SIZE);
 
         msg = concatCMD(msg, parse_cmd);
-        printf("ConcatCMD %s\n", msg);
+        //printf("ConcatCMD %s\n", msg);
 
         if(send(fd, msg, (strlen(msg)), 0) == strlen(msg)){
             cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
@@ -513,13 +566,37 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
         // This handles empty cmd, do nothing and no error
         printf("\n");
     }
-    else if(((strcmp(cmd, "BLOCK") == 0) && (parse_cmd->arg_num == 1)) ||
-        ((strcmp(cmd, "UNBLOCK") == 0) && (parse_cmd->arg_num == 1))){
-        if(!(isValidIP(parse_cmd->arg0) && isLoggedinUser(parse_cmd->arg0))){
+    else if((strcmp(cmd, "BLOCK") == 0) && (parse_cmd->arg_num == 1)){
+        if(!(isValidIP(parse_cmd->arg0) && isLoggedinUser(parse_cmd->arg0) && !isBlocked(trimwhitespace(parse_cmd->arg0)))){
             cse4589_print_and_log("[%s:ERROR]\n", cmd);
             cse4589_print_and_log("[%s:END]\n", cmd);
             return;
         }
+
+        c_block(trimwhitespace(parse_cmd->arg0));
+
+        char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
+        memset(msg, '\0', MSG_SIZE);
+        msg = concatCMD(msg, parse_cmd);
+
+        if(send(fd, msg, (strlen(msg)), 0) == strlen(msg)){
+            cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+            cse4589_print_and_log("[%s:END]\n", cmd);
+        }
+        else{
+            cse4589_print_and_log("[%s:ERROR]\n", cmd);
+            cse4589_print_and_log("[%s:END]\n", cmd);
+        }
+        free(msg);
+    }
+    else if((strcmp(cmd, "UNBLOCK") == 0) && (parse_cmd->arg_num == 1)){
+        if(!(isValidIP(parse_cmd->arg0) && isLoggedinUser(parse_cmd->arg0) && isBlocked(trimwhitespace(parse_cmd->arg0)))){
+            cse4589_print_and_log("[%s:ERROR]\n", cmd);
+            cse4589_print_and_log("[%s:END]\n", cmd);
+            return;
+        }
+
+        c_unblock(trimwhitespace(parse_cmd->arg0));
 
         char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
         memset(msg, '\0', MSG_SIZE);
