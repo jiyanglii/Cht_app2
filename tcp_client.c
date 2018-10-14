@@ -426,7 +426,7 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
     else if(strcmp(cmd, "AUTHOR") == 0){
       const char* your_ubit_name = "jiyangli";
       cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
-      cse4589_print_and_log("I,%s,have read and understood the course academic integrity policy.\n",your_ubit_name);
+      cse4589_print_and_log("I, %s, have read and understood the course academic integrity policy.\n",your_ubit_name);
       cse4589_print_and_log("[%s:END]\n", cmd);
     }
     else if (strcmp(cmd, "LIST") == 0){
