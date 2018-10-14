@@ -240,23 +240,8 @@ int forward(){
             // Client not logged in, buffer the msg
 
             // Find a spot in the buffer
-            for(int j = 0; j < MAX_MSG_BUFFER; j++){
-                //printf("%s\n", client_list[id_dst].buffer[j]);
-                if(!client_list[id_dst].buffer[j]){
-                    client_list[id_dst].buffer[j] = (char*) malloc(sizeof(char)*(strlen(msg)) + 2);
-                    memset(client_list[id_dst].buffer[j], '\0', sizeof(char)*(strlen(msg)) + 2);
-                    memcpy(client_list[id_dst].buffer[j], msg, (strlen(msg)));
-                    strcat(client_list[id_dst].buffer[j],"\n");
-                    memset(msg, '\0', MSG_SIZE);
-
-                    //printf("Buffered msg: %s\n", client_list[id_dst].buffer[j]);
-
-                    break;
-                }
-            }
+            buffer_msg(id_dst, msg);
         }
-
-
     }
     else{
         // Not client in the list
@@ -265,6 +250,22 @@ int forward(){
     return 0;
 }
 
+void buffer_msg(int dst_idx, char * msg){
+    for(int j = 0; j < MAX_MSG_BUFFER; j++){
+        //printf("%s\n", client_list[dst_idx].buffer[j]);
+        if(!client_list[dst_idx].buffer[j]){
+            client_list[dst_idx].buffer[j] = (char*) malloc(sizeof(char)*(strlen(msg)) + 2);
+            memset(client_list[dst_idx].buffer[j], '\0', sizeof(char)*(strlen(msg)) + 2);
+            memcpy(client_list[dst_idx].buffer[j], msg, (strlen(msg)));
+            strcat(client_list[dst_idx].buffer[j],"\n");
+            memset(msg, '\0', MSG_SIZE);
+
+            //printf("Buffered msg: %s\n", client_list[dst_idx].buffer[j]);
+
+            break;
+        }
+    }
+}
 
 int login(){
     int id_src  = -1;
@@ -518,8 +519,13 @@ void broadcast(struct s_cmd * cmd) {
     for(int i = 0; i < MAX_CLIENT; i++) {
         if((client_list[i].fd != 0) && (client_list[i].fd != sock_index) && !check_block(scr_id, i)) {
 
-            send(client_list[i].fd, msg, (strlen(msg)),0);
-
+            if(client_list[i].status == LOGGED_IN){
+                send(client_list[i].fd, msg, (strlen(msg)),0);
+            }
+            else{
+                // Buffer the msg
+                buffer_msg(find_client_by_fd(client_list[i].fd), msg);
+            }
         }
         else if(client_list[i].fd == 0){
             break;

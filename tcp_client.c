@@ -329,6 +329,7 @@ void file_transfer(struct s_cmd * parse_cmd, int fd){
             strcat(msg, " ");
             strcat(msg, buf);
             send(fd, msg, (strlen(msg)), 0);
+            usleep(1500);
             memset(buf, '\0', sizeof(char)*(MSG_SIZE-30));
         }
         if (ferror(fp)) {
