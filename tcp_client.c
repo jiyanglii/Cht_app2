@@ -536,7 +536,7 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
     }
     else if(((strcmp(cmd, "BLOCK") == 0) && (parse_cmd->arg_num == 1)) ||
         ((strcmp(cmd, "UNBLOCK") == 0) && (parse_cmd->arg_num == 1))){
-        if(!isValidIP(parse_cmd->arg0)){
+        if(!(isValidIP(parse_cmd->arg0) && isLoggedinUser(parse_cmd->arg0))){
             cse4589_print_and_log("[%s:ERROR]\n", cmd);
             cse4589_print_and_log("[%s:END]\n", cmd);
             return;
