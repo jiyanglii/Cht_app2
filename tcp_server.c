@@ -500,6 +500,8 @@ void broadcast(struct s_cmd * cmd) {
     memset(msg, '\0', sizeof(char)*MSG_SIZE);
 
     strcat(msg, "BROADCAST ");
+    strcat(msg, trimwhitespace(client_list[scr_id].ip_str));
+    strcat(msg, " ");
     strcat(msg, cmd->arg0);
 
     if(cmd->arg_num >= 2){
