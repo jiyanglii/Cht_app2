@@ -367,9 +367,9 @@ void c_processCMD_rev(struct s_cmd * parse_cmd, int fd){
         token = strtok(msg,"\n");
         cse4589_print_and_log("[%s:SUCCESS]\n", "RECEIVED");
         if(token)
-            cse4589_print_and_log("msg from:%s\n[msg]:%s\n", "255.255.255.255", token);
+            cse4589_print_and_log("msg from:%s\n[msg]:%s\n", parse_cmd->arg0, token);
         else
-            cse4589_print_and_log("msg from:%s\n[msg]:%s\n", "255.255.255.255", msg);
+            cse4589_print_and_log("msg from:%s\n[msg]:%s\n", parse_cmd->arg0, msg);
         cse4589_print_and_log("[%s:END]\n", "RECEIVED");
     }
     else if(strcmp(cmd, "REFRESH") == 0){
@@ -506,7 +506,7 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
         }
 //        fflush(stdout);
         free(msg);
-        cse4589_print_and_log("[%s:END]\n", cmd);
+//        cse4589_print_and_log("[%s:END]\n", cmd);
     }
     else if(strcmp(cmd, "PORT") == 0){
         cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
