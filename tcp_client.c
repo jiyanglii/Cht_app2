@@ -131,7 +131,6 @@ int tcp_client(int c_PORT){
     return 0;
 }
 
-
 int connect_to_host(char *server_ip, int server_port)
 {
     int fdsocket, len;
@@ -347,29 +346,14 @@ void c_processCMD_rev(struct s_cmd * parse_cmd, int fd){
     char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
     memset(msg, '\0', sizeof(char)*MSG_SIZE);
 
-    if((strcmp(cmd, "SEND") == 0) && (parse_cmd->arg_num >= 2)){
+    if(((strcmp(cmd, "SEND") == 0) && (parse_cmd->arg_num >= 2))
+        ||((strcmp(cmd, "BROADCAST") == 0) && (parse_cmd->arg_num >= 2))){
         token = strtok(parse_cmd->arg1,"\n");
         cse4589_print_and_log("[%s:SUCCESS]\n", "RECEIVED");
         if(token)
             cse4589_print_and_log("msg from:%s\n[msg]:%s\n", parse_cmd->arg0, token);
         else
             cse4589_print_and_log("msg from:%s\n[msg]:%s\n", parse_cmd->arg0, parse_cmd->arg1);
-        cse4589_print_and_log("[%s:END]\n", "RECEIVED");
-    }
-    if((strcmp(cmd, "BROADCAST") == 0) && (parse_cmd->arg_num >= 1)){
-
-        strcat(msg, parse_cmd->arg0);
-        if(parse_cmd->arg_num >= 2){
-            strcat(msg, " ");
-            strcat(msg, parse_cmd->arg1);
-        }
-
-        token = strtok(msg,"\n");
-        cse4589_print_and_log("[%s:SUCCESS]\n", "RECEIVED");
-        if(token)
-            cse4589_print_and_log("msg from:%s\n[msg]:%s\n", parse_cmd->arg0, token);
-        else
-            cse4589_print_and_log("msg from:%s\n[msg]:%s\n", parse_cmd->arg0, msg);
         cse4589_print_and_log("[%s:END]\n", "RECEIVED");
     }
     else if(strcmp(cmd, "REFRESH") == 0){
@@ -473,7 +457,7 @@ void c_processCMD(struct s_cmd * parse_cmd, int fd){
         memset(msg, '\0', MSG_SIZE);
 
         msg = concatCMD(msg, parse_cmd);
-//        printf("ConcatCMD %s\n", msg);
+        printf("ConcatCMD %s\n", msg);
 
         if(send(fd, msg, (strlen(msg)), 0) == strlen(msg)){
             cse4589_print_and_log("[%s:SUCCESS]\n", cmd);

@@ -6,6 +6,7 @@
 #define CMD_SIZE    512
 #define BUFFER_SIZE 512
 #define MSG_SIZE    512
+
 #define IP_SIZE     255
 #define LOGOUT      "LOGOUT"
 #define EXIT        "EXIT"
