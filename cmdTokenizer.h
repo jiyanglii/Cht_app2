@@ -1,6 +1,6 @@
 #pragma once
 
-#define MSG_SIZE    256
+#define MSG_SIZE    512
 
 struct s_cmd{
     char *cmd;
