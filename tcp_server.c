@@ -192,6 +192,23 @@ int check_block(int src_id, int dst_id){
     return blocked;
 }
 
+void buffer_msg(int dst_idx, char * msg){
+    for(int j = 0; j < MAX_MSG_BUFFER; j++){
+        //printf("%s\n", client_list[dst_idx].buffer[j]);
+        if(!client_list[dst_idx].buffer[j]){
+            client_list[dst_idx].buffer[j] = (char*) malloc(sizeof(char)*(strlen(msg)) + 2);
+            memset(client_list[dst_idx].buffer[j], '\0', sizeof(char)*(strlen(msg)) + 2);
+            memcpy(client_list[dst_idx].buffer[j], msg, (strlen(msg)));
+            strcat(client_list[dst_idx].buffer[j],"\n");
+            memset(msg, '\0', MSG_SIZE);
+
+            //printf("Buffered msg: %s\n", client_list[dst_idx].buffer[j]);
+
+            break;
+        }
+    }
+}
+
 int forward(){
 
     int id_dst, id_src  = -1;
@@ -248,23 +265,6 @@ int forward(){
     }
     free(msg);
     return 0;
-}
-
-void buffer_msg(int dst_idx, char * msg){
-    for(int j = 0; j < MAX_MSG_BUFFER; j++){
-        //printf("%s\n", client_list[dst_idx].buffer[j]);
-        if(!client_list[dst_idx].buffer[j]){
-            client_list[dst_idx].buffer[j] = (char*) malloc(sizeof(char)*(strlen(msg)) + 2);
-            memset(client_list[dst_idx].buffer[j], '\0', sizeof(char)*(strlen(msg)) + 2);
-            memcpy(client_list[dst_idx].buffer[j], msg, (strlen(msg)));
-            strcat(client_list[dst_idx].buffer[j],"\n");
-            memset(msg, '\0', MSG_SIZE);
-
-            //printf("Buffered msg: %s\n", client_list[dst_idx].buffer[j]);
-
-            break;
-        }
-    }
 }
 
 int login(){
