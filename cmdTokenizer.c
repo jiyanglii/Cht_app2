@@ -10,7 +10,7 @@
 #include <unistd.h>
 #include "cmdTokenizer.h"
 
-#define DEBUG
+//#define DEBUG
 
 void cmdTokenizer(char *input, struct s_cmd * parse_cmd){
 
@@ -61,6 +61,14 @@ void cmdTokenizer(char *input, struct s_cmd * parse_cmd){
 #ifdef DEBUG
     printf("Line %d: Number of args in this cmd: %d\n",  __LINE__, parse_cmd->arg_num);
 #endif
+
+    token = strtok(parse_cmd->arg0, "\n");
+    if(token)
+      parse_cmd->arg0 = token;
+
+    token = strtok(parse_cmd->arg1, "\n");
+    if(token)
+      parse_cmd->arg1 = token;
 
     if(parse_cmd->arg_num == 0)
         parse_cmd->cmd = trimwhitespace(parse_cmd->cmd);

@@ -1,37 +1,27 @@
 /**
- * @server
- * @author  Swetank Kumar Saha <swetankk@buffalo.edu>
- * @version 1.0
- *
- * @section LICENSE
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License as
- * published by the Free Software Foundation; either version 2 of
- * the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * General Public License for more details at
- * http://www.gnu.org/copyleft/gpl.html
- *
- * @section DESCRIPTION
- *
- * This file contains the server init and main while loop for tha application.
- * Uses the select() API to multiplex between network I/O and STDIN.
+
  */
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <sys/socket.h>
+#include <sys/select.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netdb.h>
 #include <strings.h>
 #include <string.h>
 #include <unistd.h>
 #include "cmdTokenizer.h"
 #include "tcp_server.h"
+#include "tcp_client.h"
+
+#ifndef __APPLE__
+#include "../include/logger.h"
+#else
+#define cse4589_print_and_log printf
+#endif
 
 static struct s_client client_list[MAX_CLIENT] = {0};
 static int client_count = 1;
@@ -39,13 +29,14 @@ static struct s_cmd input_cmd;
 
 static int s_local_port = 0;
 
+static fd_set master_list, watch_list;
 static int sock_index = 0;
+static int head_socket = 0;
 
 int tcp_server(int s_PORT){
 
-    int port, server_socket, head_socket, selret, fdaccept=0, caddr_len;
+    int port, server_socket, selret, fdaccept=0, caddr_len;
     struct sockaddr_in server_addr, client_addr;
-    fd_set master_list, watch_list;
 
     /* Socket */
     server_socket = socket(AF_INET, SOCK_STREAM, 0); /* socket - create an endpoint for communication
@@ -85,7 +76,7 @@ int tcp_server(int s_PORT){
     FD_SET(STDIN, &master_list);
 
     head_socket = server_socket;
-    printf("\nserver_socket: %d\n", server_socket);
+//    printf("\nserver_socket: %d\n", server_socket);
 
     while(TRUE){
         memcpy(&watch_list, &master_list, sizeof(master_list));
@@ -113,8 +104,7 @@ int tcp_server(int s_PORT){
                         memset(cmd, '\0', CMD_SIZE);
                         if(fgets(cmd, CMD_SIZE-1, stdin) == NULL) //Mind the newline character that will be written to cmd
                             exit(-1);
-
-                        printf("\nI got: %s\n", cmd);
+//                        printf("\nI got: %s\n", cmd);
 
                         // process command
                         cmdTokenizer(cmd, &input_cmd);
@@ -126,19 +116,22 @@ int tcp_server(int s_PORT){
                     }
                     /* Check if new client is requesting connection */
                     else if(sock_index == server_socket){
-                        printf("\nLine %d: sock_index: %d\n", __LINE__, sock_index);
+//                        printf("\nLine %d: sock_index: %d\n", __LINE__, sock_index);
                         caddr_len = sizeof(client_addr);
                         fdaccept = accept(server_socket, (struct sockaddr *)&client_addr, (socklen_t *)&caddr_len);
-                        if(fdaccept < 0)
+                        if(fdaccept < 0){
                             perror("Accept failed.");
+                        }
+                        
 
-                        printf("\nRemote Host connected!\n");
+                        //printf("\nRemote Host connected!\n");
 
                         // Add new client to client list
                         if(new_client(fdaccept,(struct sockaddr *)&client_addr))
                             printf("\nAdd to client list failed!\n");
 
                         // Braodcast new client info
+                        refresh(fdaccept);
 
                         /* Add to watched socket list */
                         FD_SET(fdaccept, &master_list);
@@ -146,14 +139,15 @@ int tcp_server(int s_PORT){
                     }
                     /* Read from existing clients */
                     else{
-                        printf("\nLine %d: sock_index: %d\n", __LINE__, sock_index);
+                        //printf("\nLine %d: sock_index: %d\n", __LINE__, sock_index);
+
                         /* Initialize buffer to receieve response */
-                        char *buffer = (char*) malloc(sizeof(char)*BUFFER_SIZE);
+                        char *buffer= (char*) malloc(sizeof(char)*BUFFER_SIZE);
                         memset(buffer, '\0', BUFFER_SIZE);
 
                         if(recv(sock_index, buffer, BUFFER_SIZE, 0) < 0){
-                            close(sock_index);
                             printf("Remote Host terminated connection!\n");
+                            close(sock_index);
 
                             // Remove client from client list
 
@@ -163,7 +157,11 @@ int tcp_server(int s_PORT){
                         else {
                             //Process incoming data from existing clients here ...
 
-                            printf("\nClient sent me: %s\n", buffer);
+                            //printf("\nClient sent me: %s\n", buffer);
+
+                            int src_ip;
+                            src_ip = client_addr.sin_addr.s_addr;
+                            //printf("\nClient send ip_address is: %d\n", src_ip);
 
                             cmdTokenizer(buffer, &input_cmd);
                             processCMD(&input_cmd);
@@ -182,9 +180,40 @@ int tcp_server(int s_PORT){
     return 0;
 }
 
+int check_block(int src_id, int dst_id){
+    int blocked = 0;
+    for(int i = 0; i<MAX_CLIENT; i++){
+        if(client_list[src_id].block_by[i] == client_list[dst_id].fd){
+            //printf("The destination has BLOCKED the src\n");
+            blocked = 1;
+            break;
+        }
+    }
+
+    return blocked;
+}
+
+void buffer_msg(int dst_idx, char * msg){
+    for(int j = 0; j < MAX_MSG_BUFFER; j++){
+        //printf("%s\n", client_list[dst_idx].buffer[j]);
+        if(!client_list[dst_idx].buffer[j]){
+            client_list[dst_idx].buffer[j] = (char*) malloc(sizeof(char)*(strlen(msg)) + 2);
+            memset(client_list[dst_idx].buffer[j], '\0', sizeof(char)*(strlen(msg)) + 2);
+            memcpy(client_list[dst_idx].buffer[j], msg, (strlen(msg)));
+            strcat(client_list[dst_idx].buffer[j],"\n");
+            memset(msg, '\0', MSG_SIZE);
+
+            //printf("Buffered msg: %s\n", client_list[dst_idx].buffer[j]);
+
+            break;
+        }
+    }
+}
+
 int forward(){
 
     int id_dst, id_src  = -1;
+    char * token;
     char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
     memset(msg, '\0', MSG_SIZE);
 
@@ -197,6 +226,7 @@ int forward(){
     if(id_dst != -1){
 
         id_src = find_client_by_fd(sock_index);
+        client_list[id_src].msg_sent++;
 
         memcpy(&dest_ip_str[0],client_list[id_src].ip_str,sizeof(dest_ip_str));
 
@@ -205,31 +235,30 @@ int forward(){
         msg = concatCMD(msg, &input_cmd);
 
         if (client_list[id_dst].status == LOGGED_IN){
+
+            client_list[id_dst].msg_rev++;
             // When logged in, directly forward msg, find out incoming client by its FD
 
-            if(send(client_list[id_dst].fd, msg, (strlen(msg)), 0) == strlen(msg))
-                printf("Sent!\n");
+            token = strtok(input_cmd.arg1,"\n");
+            if(token)
+                cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", client_list[id_src].ip_str, client_list[id_dst].ip_str, token);
+            else
+                cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", client_list[id_src].ip_str, client_list[id_dst].ip_str, input_cmd.arg1);
+
+            if(check_block(id_src, id_dst))
+                return 1;
+
+            if(send(client_list[id_dst].fd, msg, (strlen(msg)), 0) == strlen(msg)){
+                //printf("Sent!\n");
+            }
             fflush(stdout);
         }
         else{
             // Client not logged in, buffer the msg
-            printf("Buffering msg!\n");
 
             // Find a spot in the buffer
-            for(int j = 0; j < MAX_MSG_BUFFER; j++){
-                printf("%s\n", client_list[id_dst].buffer[j]);
-                if(!client_list[id_dst].buffer[j]){
-                    client_list[id_dst].buffer[j] = (char*) malloc(sizeof(char)*(strlen(msg)));
-                    memcpy(client_list[id_dst].buffer[j], msg, sizeof(char)*(strlen(msg)));
-
-                    printf("Buffered msg: %s\n", client_list[id_dst].buffer[j]);
-
-                    break;
-                }
-            }
+            buffer_msg(id_dst, msg);
         }
-
-
     }
     else{
         // Not client in the list
@@ -237,7 +266,6 @@ int forward(){
     free(msg);
     return 0;
 }
-
 
 int login(){
     int id_src  = -1;
@@ -249,12 +277,16 @@ int login(){
 
         //Send all buffered msg now!
         for(int j = 0; j < MAX_MSG_BUFFER; j++){
-            if(client_list[id_src].buffer[j] != NULL){
-                if(send(client_list[id_src].fd, client_list[id_src].buffer[j], (strlen(client_list[id_src].buffer[j])), 0) == strlen(client_list[id_src].buffer[j]))
-                    printf("Buffered msg sent!\n");
+            //printf("%s\n", client_list[id_src].buffer[j]);
+            if(client_list[id_src].buffer[j]){
+                if(send(client_list[id_src].fd, client_list[id_src].buffer[j], (strlen(client_list[id_src].buffer[j])), 0) == strlen(client_list[id_src].buffer[j])){
+                    //printf("Buffered msg sent!\n");
+                }
                 fflush(stdout);
+                usleep(1500);
                 free(client_list[id_src].buffer[j]);
                 client_list[id_src].buffer[j] = NULL;
+                client_list[id_src].msg_rev++;
             }
             else{
                 // Reach the end
@@ -283,6 +315,46 @@ int logout(){
     return 0;
 }
 
+void block(char * ip){
+    //printf("%s\n", ip);
+
+    int id_src  = -1;
+
+    id_src = find_client_by_ip(ip);
+
+    if(id_src != -1){
+        for(int i = 0; i<MAX_CLIENT; i++){
+            if(client_list[id_src].block_by[i] == 0){
+                client_list[id_src].block_by[i] = sock_index;
+                //printf("BLOCKED!\n");
+                break;
+            }
+        }
+
+    }
+    else
+        printf("Client not found!\n");
+}
+
+void unblock(char * ip){
+
+    int id_src  = -1;
+
+    id_src = find_client_by_ip(ip);
+
+    if(id_src != -1){
+        for(int i = 0; i<MAX_CLIENT; i++){
+            if(client_list[id_src].block_by[i] == sock_index){
+                client_list[id_src].block_by[i] = 0;
+                break;
+            }
+        }
+
+    }
+    else
+        printf("Client not found!\n");
+}
+
 int find_client_by_ip(char * ip){
 
     int idx = -1;
@@ -290,8 +362,8 @@ int find_client_by_ip(char * ip){
     for(int i = 0; i<MAX_CLIENT; i++){
 
         if ((client_list[i].fd != 0) && (strcmp(client_list[i].ip_str, ip) == 0)){
-            printf("\nClient found!\n");
 
+            //printf("\nClient found!\n");
             idx = i;
 
             break;
@@ -310,7 +382,7 @@ int find_client_by_fd(int fd){
     for(int i = 0; i<MAX_CLIENT; i++){
 
         if ((client_list[i].fd != 0) && (client_list[i].fd == fd)){
-            printf("\nClient found!\n");
+//            printf("\nClient found!\n");
 
             idx = i;
 
@@ -324,10 +396,35 @@ int find_client_by_fd(int fd){
     return idx;
 }
 
+void remove_client_by_fd(int fd){
+
+    int idx = find_client_by_fd(fd);
+
+    // Wipe out the client
+    memset(&client_list[idx], 0, sizeof(struct s_client));
+    client_list[idx].fd = 0;
+
+    // Re order the client list to fill in the hole
+    for(int i = 0; i<(MAX_CLIENT - 1); i++){
+
+        if ((client_list[i].fd == 0) && (client_list[i+1].fd != 0)){
+            client_list[i] = client_list[i+1];
+            //memcpy(&client_list[i], &client_list[i+1], sizeof(struct s_client));
+            memset(&client_list[i+1], 0, sizeof(struct s_client));
+            client_list[i+1].fd = 0;
+        }
+        else if ((client_list[i].fd == 0) && (client_list[i+1].fd == 0)){
+            // Break when two consecutive clients are empty
+            break;
+        }
+    }
+}
+
 int new_client(int new_fd, struct sockaddr * client_sock){
 
     char s[INET_ADDRSTRLEN];
     struct sockaddr_in client_sock_in = *(struct sockaddr_in *)client_sock;
+
 
     for(int i = 0; i<MAX_CLIENT; i++)
     {
@@ -335,11 +432,15 @@ int new_client(int new_fd, struct sockaddr * client_sock){
         {
 
             inet_ntop(client_sock->sa_family,get_in_addr(client_sock), s , sizeof(s));
-            printf("server: got connection from ip %s\n", s);
-            printf("server: got connection from port %08d\n", htons(client_sock_in.sin_port));
+//            printf("server: got connection from ip %s\n", s);
+//            printf("server: got connection from port %08d\n", htons(client_sock_in.sin_port));
+            getnameinfo((struct sockaddr *)&client_sock_in, sizeof(client_sock_in), client_list[i].host_name, sizeof(client_list[i].host_name), NULL, 0, 0);
+
+            //printf("host: %s\n", client_list[i].host_name);
+            //printf("service: %s\n", service);
 
 
-            printf("%d\n", *(uint32_t *)get_in_addr(client_sock));
+            //printf("%d\n", *(uint32_t *)get_in_addr(client_sock));
 
             client_list[i].client_id = client_count;
             client_list[i].status = LOGGED_IN;
@@ -350,6 +451,12 @@ int new_client(int new_fd, struct sockaddr * client_sock){
             client_list[i].fd = new_fd;
             client_list[i].client_info = client_sock_in;
 
+            client_list[i].msg_rev = 0;
+            client_list[i].msg_sent = 0;
+
+            for(int j = 0; j < MAX_CLIENT; j++){
+                client_list[i].block_by[j] = 0;
+                }
             //printf("getpeername:%d\n", getpeername(new_fd, client_sock, (socklen_t *)sizeof(struct sockaddr)));
             //printf("gethostname:%d\n", gethostname(fd, &client_sock, sizeof(client_sock)));
 
@@ -361,7 +468,178 @@ int new_client(int new_fd, struct sockaddr * client_sock){
             break;
         }
     }
+
+    // Re-order client list
+    client_list_sort();
+
     return 0;
+}
+
+void statistics(){
+    for(int i = 0; i<MAX_CLIENT; i++){
+
+        if (client_list[i].fd != 0){
+            //printf("\nClient found!\n");
+            if(client_list[i].status)
+                cse4589_print_and_log("%-5d%-35s%-8d%-8d%-8s\n", i+1, client_list[i].host_name, client_list[i].msg_sent, client_list[i].msg_rev, loggedin);
+            else
+                cse4589_print_and_log("%-5d%-35s%-8d%-8d%-8s\n", i+1, client_list[i].host_name, client_list[i].msg_sent, client_list[i].msg_rev, loggedout);
+        }
+        else if(client_list[i].fd == 0){
+            break;
+        }
+    }
+}
+
+void broadcast(struct s_cmd * cmd) {
+    cse4589_print_and_log("[%s:SUCCESS]\n", "RELAYED");
+    int scr_id = find_client_by_fd(sock_index);
+    char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
+    char *token;
+
+    memset(msg, '\0', sizeof(char)*MSG_SIZE);
+
+    strcat(msg, "BROADCAST ");
+    strcat(msg, trimwhitespace(client_list[scr_id].ip_str));
+    strcat(msg, " ");
+    strcat(msg, cmd->arg0);
+
+    if(cmd->arg_num >= 2){
+        strcat(msg, " ");
+        strcat(msg, cmd->arg1);
+    }
+
+        if(cmd->arg_num >= 2){
+            cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s %s\n", client_list[scr_id].ip_str, "255.255.255.255", cmd->arg0, cmd->arg1);
+        }
+        else{
+            cse4589_print_and_log("msg from:%s, to:%s\n[msg]:%s\n", client_list[scr_id].ip_str, "255.255.255.255", cmd->arg0);
+        }
+
+    for(int i = 0; i < MAX_CLIENT; i++) {
+        if((client_list[i].fd != 0) && (client_list[i].fd != sock_index) && !check_block(scr_id, i)) {
+
+            if(client_list[i].status == LOGGED_IN){
+                send(client_list[i].fd, msg, (strlen(msg)),0);
+            }
+            else{
+                // Buffer the msg
+                buffer_msg(find_client_by_fd(client_list[i].fd), msg);
+            }
+        }
+        else if(client_list[i].fd == 0){
+            break;
+        }
+        token = NULL;
+    }
+    free(msg);
+    cse4589_print_and_log("[%s:END]\n", "RELAYED");
+}
+
+void refresh(int fd){
+    char *msg = (char*) malloc(sizeof(char)*MSG_SIZE);
+    memset(msg, '\0', sizeof(char)*MSG_SIZE);
+    char *buffer = (char*) malloc(sizeof(char)*MSG_SIZE);
+    memset(buffer, '\0',sizeof(char)*MSG_SIZE);
+
+    strcat(msg, "REFRESH ");
+
+    for(int i = 0; i<MAX_CLIENT; i++){
+
+        if ((client_list[i].fd != 0) && (client_list[i].status == LOGGED_IN)){
+
+            sprintf(buffer, "%d %s %s% d", i+1, client_list[i].host_name, client_list[i].ip_str, client_list[i].port_num);
+            strcat(msg, buffer);
+            strcat(msg, " ");
+            memset(buffer, '\0', sizeof(char)*MSG_SIZE);
+        }
+        else if(client_list[i].fd == 0){
+            break;
+        }
+    }
+    send(fd, msg, (strlen(msg)),0);
+    free(msg);
+    free(buffer);
+}
+
+void client_swap(struct s_client *a, struct s_client *b){
+    struct s_client temp = {0};
+    temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+void client_list_sort(){
+    bool swapped = false;
+
+    // Max O(n*n)
+    for(int j = 0; j<MAX_CLIENT*MAX_CLIENT; j++){
+        for(int i = 0; i<(MAX_CLIENT - 1); i++){
+            if ((client_list[i].port_num > client_list[i+1].port_num) &&
+                (client_list[i].fd != 0) && (client_list[i+1].fd != 0))
+            {
+                client_swap(&client_list[i], &client_list[i+1]);
+                swapped = true;
+            }
+            else if ((client_list[i].fd == 0) || (client_list[i+1].fd == 0))
+                break;
+        }
+        if(swapped)
+            swapped = false;
+        else
+            break;
+    }
+}
+
+int print_blocked(char * ip){
+
+    int idx = find_client_by_ip(ip);
+
+    if(idx < 0)
+        return 1;
+
+    int fd = client_list[idx].fd;
+    int blocked = 0;
+
+    for(int i = 0; i<MAX_CLIENT; i++){
+
+        if (client_list[i].fd != 0){
+
+            for(int j=0; j<MAX_CLIENT; j++){
+                if((client_list[i].block_by[j] != 0) && (client_list[i].block_by[j] == fd)){
+                    blocked = 1;
+                }
+                else if(client_list[i].block_by[j] == 0){
+                    break;
+                }
+            }
+
+            if(blocked){
+                cse4589_print_and_log("%-5d%-35s%-20s%-8d\n", i+1, client_list[i].host_name, client_list[i].ip_str, client_list[i].port_num);
+            }
+
+            blocked = 0;
+        }
+        else if(client_list[i].fd == 0){
+            break;
+        }
+    }
+    return 0;
+
+}
+
+void list(){
+
+    for(int i = 0; i<MAX_CLIENT; i++){
+
+        if ((client_list[i].fd != 0) && (client_list[i].status == LOGGED_IN)){
+            //printf("\nClient found!\n");
+            cse4589_print_and_log("%-5d%-35s%-20s%-8d\n", i+1, client_list[i].host_name, client_list[i].ip_str, client_list[i].port_num);
+        }
+        else if(client_list[i].fd == 0){
+            break;
+        }
+    }
 }
 
 // get sockaddr, IPv4 or IPv6:
@@ -374,14 +652,22 @@ void *get_in_addr(struct sockaddr *sa)
 }
 
 void processCMD(struct s_cmd * parse_cmd){
-    char *cmd = parse_cmd->cmd;
-
+    char *cmd    = parse_cmd->cmd;
+    char *buffer = parse_cmd->arg0;
 
     if(strcmp(cmd, "IP") == 0){
-                    // call ip();
+        GetPrimaryIP(cmd); // call ip();
+    }
+    else if(strcmp(cmd, "AUTHOR") == 0){
+        const char* your_ubit_name = "jiyangli";
+        cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+        cse4589_print_and_log("I, %s, have read and understood the course academic integrity policy.\n",your_ubit_name);
+        cse4589_print_and_log("[%s:END]\n", cmd);
     }
     else if(strcmp(cmd, "PORT") == 0){
-        printf("PORT:%d\n", s_local_port);
+        cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+        cse4589_print_and_log("PORT:%d\n", s_local_port);
+        cse4589_print_and_log("[%s:END]\n", cmd);
     }
     else if (strcmp(cmd, "LOGOUT") == 0){
         logout();
@@ -390,13 +676,84 @@ void processCMD(struct s_cmd * parse_cmd){
         // Here handles when a client already in the list, but logged out, re log in here
         // New client case is handles elsewhere
         login();
+        fflush(stdout);
+        usleep(100);
+        refresh(sock_index);
     }
     else if (strcmp(cmd, "SEND") == 0){
         // Validate destination IP and
-        if(forward())
-            printf("Message forwarding failed\n");
+        cse4589_print_and_log("[%s:SUCCESS]\n", "RELAYED");
+        if(forward()){
+            //printf("Message forwarding failed\n");
+        }
+        cse4589_print_and_log("[%s:END]\n", "RELAYED");
+    }
+    else if (strcmp(cmd, EXIT) == 0){
+        if(sock_index == STDIN){
+            // EXIT server
+            for(int i = 3; i<=head_socket; i++){
+                shutdown(i, SHUT_WR);
+                usleep(100);
+                close(i);
+                FD_CLR(i, &master_list);
+            }
+            head_socket = 2;
+            exit(0);
+        }
+        else{ // A client is trying to EXIT
+            // Do log out first
+            logout();
+            FD_CLR(sock_index, &master_list);
+            // Remove client from client list
+            remove_client_by_fd(sock_index);
+        }
+    }
+    else if (strcmp(cmd, "LIST") == 0){
+        // Validate destination IP and
+        cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+        list();
+        cse4589_print_and_log("[%s:END]\n", cmd);
+
+    }
+    else if (strcmp(cmd, "BROADCAST") == 0){
+        broadcast(parse_cmd);
+    }
+    else if (strcmp(cmd, "REFRESH") == 0){
+        //cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+        refresh(sock_index);
+        //cse4589_print_and_log("[%s:END]\n", cmd);
+    }
+    else if (strcmp(cmd, "STATISTICS") == 0){
+        cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+        statistics();
+        cse4589_print_and_log("[%s:END]\n", cmd);
+    }
+    else if (strcmp(cmd, "BLOCK") == 0){
+        block(trimwhitespace(parse_cmd->arg0));
+    }
+    else if (strcmp(cmd, "BLOCKED") == 0){
+        if((isValidIP(trimwhitespace(parse_cmd->arg0))) && (find_client_by_ip(trimwhitespace(parse_cmd->arg0)) != -1)){
+            cse4589_print_and_log("[%s:SUCCESS]\n", cmd);
+            print_blocked(trimwhitespace(parse_cmd->arg0));
+            cse4589_print_and_log("[%s:END]\n", cmd);
+        }
+        else{
+            cse4589_print_and_log("[%s:ERROR]\n", cmd);
+            cse4589_print_and_log("[%s:END]\n", cmd);
+        }
+
+    }
+    else if (strcmp(cmd, "UNBLOCK") == 0){
+        unblock(trimwhitespace(parse_cmd->arg0));
+    }
+    else if(strcmp(cmd, "") == 0){
+        // This handles empty cmd, do nothing and no error
+        printf("\n");
     }
     else{
+        cse4589_print_and_log("[%s:ERROR]\n", cmd);
         printf("Invalid command!\n");
+        cse4589_print_and_log("[%s:END]\n", cmd);
     }
 }
+
